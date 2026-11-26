@@ -226,12 +226,38 @@ textarea{min-height:96px;resize:vertical}
 .bnav button{flex:1;border:0;background:none;color:var(--tx3);padding:10px 0 8px;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;font-weight:500;cursor:pointer}
 .bnav button svg{width:20px;height:20px}
 .bnav button.on{color:var(--tx)}
+
+/* station */
+.stline{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--tx2);margin-bottom:14px}
+.stline .dot{width:8px;height:8px;border-radius:50%;background:var(--tx3)}.stline .dot.on{background:var(--up)}
+.boss{display:flex;gap:16px;align-items:center;border:1px solid var(--line);border-radius:10px;background:var(--s1);padding:12px 16px;margin-top:16px}
+.boss .nm{font-weight:600}.boss .acts{margin:8px 0 0;display:flex;gap:8px;flex-wrap:wrap}
+.rooms{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+.room{border:1px solid var(--line);border-radius:10px;background:var(--s1)}
+.roomh{display:flex;align-items:baseline;gap:8px;padding:10px 14px 4px}.roomh b{font-weight:600}
+.gear{display:flex;flex-wrap:wrap;gap:4px;padding:0 14px 10px;border-bottom:1px solid var(--line)}
+.gear span{font-size:11px;color:var(--tx3);border:1px solid var(--line);border-radius:5px;padding:0 5px}
+.floor{display:flex;flex-wrap:wrap;gap:4px;padding:10px}
+.ag{width:96px;display:flex;flex-direction:column;align-items:center;text-align:center;padding:6px 2px;border-radius:8px}
+.ag b{font-size:12.5px;font-weight:600}.ag .c{font-size:11px;color:var(--tx3)}.ag .s{font-size:11px;font-weight:500}.ag .j{font-size:11px;color:var(--tx2);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.sf{width:40px;height:62px;stroke:var(--tx);stroke-width:2.3;fill:none;overflow:visible}.sf circle{fill:var(--s1)}
+.sf .crown{fill:#e2b93b;stroke:#e2b93b;stroke-width:1}.sf .desk,.sf .scr{fill:var(--line2);stroke:none}.sf .scr.on{fill:var(--up)}
+.sf text{stroke:none;fill:currentColor;font:600 12px Geist,sans-serif}
+.sf.running{stroke:var(--up);color:var(--up)}.sf.blocked{stroke:var(--down);color:var(--down)}.sf.review{color:#e2b93b}.sf.idle{stroke:var(--tx3);color:var(--tx3)}
+.sf .type{animation:sft .35s infinite alternate;transform-origin:20px 30px}@keyframes sft{to{transform:translateY(1.5px) rotate(4deg)}}
+.sf .wave{animation:sfw .8s infinite alternate;transform-origin:20px 30px}@keyframes sfw{to{transform:rotate(-18deg)}}
+.trow{grid-template-columns:minmax(0,1fr) auto;cursor:pointer}.trow:hover{background:var(--s2)}
+.trow .t{font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.trow .sub{font-size:12px;color:var(--tx3)}
+.tag{font-size:11.5px;font-weight:500;border:1px solid var(--line2);border-radius:5px;padding:1px 6px;color:var(--tx2)}
+.tag.review{color:#e2b93b;border-color:#e2b93b55}.tag.blocked{color:var(--down);border-color:#e5484d55}.tag.running{color:var(--up);border-color:#4cc38a55}
+.sumbox{white-space:pre-wrap;font-size:13px;color:var(--tx2);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px 12px;max-height:40vh;overflow:auto;margin:10px 0}
+@media (max-width:720px){.rooms{grid-template-columns:1fr}.ag{width:84px}.boss{align-items:flex-start}}
 </style>
 </head>
 <body>
 <div class="top"><div class="topin">
   <div class="brand">VideoDash</div>
-  <div class="tabs" id="tabs"><button data-v="stats" class="on">Stats</button><button data-v="queue">Queue</button></div>
+  <div class="tabs" id="tabs"><button data-v="stats" class="on">Stats</button><button data-v="queue">Queue</button><button data-v="station">Station</button></div>
   <div class="sp"></div>
   <span class="upd" id="upd"></span>
   <button class="ibtn" id="refreshBtn" title="Refresh stats"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 3v6h-6"/></svg></button>
@@ -272,6 +298,16 @@ textarea{min-height:96px;resize:vertical}
     </div>
   </section>
 
+  <section id="v-station" class="hidden">
+    <div class="stline"><span class="dot" id="stDot"></span><span id="stLine">Loading station...</span></div>
+    <div class="kpis" id="stKpis"></div>
+    <div id="stBoss"></div>
+    <div class="sec" id="stNeedSec"><div class="sech"><h2>Needs you</h2></div><div class="tbl" id="stNeed"></div></div>
+    <div class="sec"><div class="sech"><h2>Rooms</h2></div><div class="rooms" id="stRooms"></div></div>
+    <div class="sec"><div class="sech"><h2>Jobs</h2></div><div class="tbl" id="stJobs"></div></div>
+    <div class="sec" id="stOrdSec"><div class="sech"><h2>Sent from phone</h2></div><div class="tbl" id="stOrders"></div></div>
+  </section>
+
   <section id="v-queue" class="hidden">
     <div class="qbar"><div class="chips" id="qChips" style="flex:1;margin-right:0"></div><button class="btn pri" id="newBtn">+ New</button></div>
     <div id="qList"></div>
@@ -281,7 +317,9 @@ textarea{min-height:96px;resize:vertical}
 <nav class="bnav" id="bnav">
   <button data-v="stats" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Stats</button>
   <button data-v="queue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M10 9l5 3-5 3z"/></svg>Queue</button>
+  <button data-v="station"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="5" r="2.5"/><path d="M12 7.5v7M12 10l-4 3M12 10l4 3M12 14.5l-3 5.5M12 14.5l3 5.5"/></svg>Station</button>
 </nav>
+<div class="sheet" id="stSheet"><div class="sheetin" id="stSheetIn"></div></div>
 
 <!-- queue item detail -->
 <div class="sheet" id="qSheet"><div class="sheetin" id="qSheetIn"></div></div>
@@ -832,13 +870,91 @@ $('#addAcct').onclick = () => { draft.push({ platform: 'tiktok', handle: '' }); 
 $('#saveAccts').onclick = async () => { try { await api('/api/accounts', { method: 'PUT', body: JSON.stringify(draft.filter((a) => a.handle.trim())) }); toast('Saved. Refresh to pull new accounts.'); closeSheet('sSheet'); load(); } catch (e) { toast('Failed: ' + e.message); } };
 $('#logoutBtn').onclick = () => { if (confirm('Log out on this device?')) { closeSheet('sSheet'); logout(); } };
 
+
+// ---------- station (Agent Studio crew, synced from the laptop) ----------
+let ST = null, STO = [];
+const STL = { running: 'working', review: 'needs you', blocked: 'stuck', queued: 'jobs queued', idle: 'idle', creating: 'moving in' };
+function stick(st, crown) {
+  const arms = { running: '<g class="type"><path d="M20 30 L12 40"/><path d="M20 30 L28 40"/></g>', review: '<path d="M20 30 L10 38"/><path d="M20 30 L30 16" class="wave"/>', blocked: '<path d="M20 30 L12 24"/><path d="M20 30 L28 24"/>' }[st] || '<path d="M20 30 L12 42"/><path d="M20 30 L28 42"/>';
+  const ex = st === 'blocked' ? '<text x="31" y="12">!</text>' : st === 'review' ? '<text x="31" y="12">?</text>' : st === 'idle' ? '<text x="28" y="12" style="font-size:10px">z</text>' : '';
+  return `<svg viewBox="0 0 40 62" class="sf ${st}">${crown ? '<path class="crown" d="M11 9 L13 1 L17 6 L20 0 L23 6 L27 1 L29 9 Z"/>' : ''}<circle cx="20" cy="16" r="6.5"/><path d="M20 22.5 L20 44"/>${arms}<path d="M20 44 L13 58"/><path d="M20 44 L27 58"/><rect x="2" y="44" width="36" height="3.5" rx="1" class="desk"/><rect x="26" y="34" width="10" height="9" rx="1" class="scr ${st === 'running' ? 'on' : ''}"/>${ex}</svg>`;
+}
+async function loadStation() {
+  try { const [st, ord] = await Promise.all([getJson('station.json', null), getJson('orders.json', [])]); ST = st; STO = ord; renderStation(); }
+  catch (e) { $('#stLine').textContent = 'Could not load station: ' + e.message; }
+}
+function renderStation() {
+  if (!ST) { $('#stLine').textContent = 'No station data yet. Agent Studio on the laptop pushes it once it runs.'; return; }
+  const online = Date.now() - ST.at < 12 * 60000;
+  $('#stDot').classList.toggle('on', online);
+  $('#stLine').innerHTML = online ? `Laptop online · synced ${ago(ST.at) === 'now' ? 'just now' : ago(ST.at) + ' ago'}` : `Laptop offline · last seen ${ago(ST.at)} ago. Agents are paused; anything you send runs when it's back.`;
+  const ts = ST.tasks || [], n = (s) => ts.filter((t) => t.status === s).length;
+  const spent = ST.agents.reduce((a, x) => a + (x.spendToday || 0), 0);
+  $('#stKpis').innerHTML = [['Crew', ST.agents.filter((a) => !a.overseer).length], ['Working', n('running')], ['Needs you', n('review') + n('blocked')], ['Usage today (API value)', '$' + spent.toFixed(spent >= 10 ? 0 : 2)]]
+    .map(([l, v]) => `<div class="kpi"><div class="l">${l}</div><div class="v num">${v}</div></div>`).join('');
+  const boss = ST.agents.find((a) => a.overseer);
+  $('#stBoss').innerHTML = boss ? `<div class="boss">${stick(boss.status, true)}<div style="flex:1;min-width:0"><div><span class="nm">${esc(boss.name)}</span> <span class="dim" style="font-size:12px">overseer · ${esc(boss.model)}</span></div>
+    <div class="mut" style="font-size:13px">${n('running')} working · ${n('review')} to review · ${n('blocked')} stuck · ${ts.filter((t) => ['ready', 'todo'].includes(t.status)).length} queued</div>
+    <div class="acts"><button class="btn pri" data-stjob="default">Give a job</button></div></div></div>` : '';
+  const need = ts.filter((t) => t.status === 'review' || t.status === 'blocked');
+  $('#stNeedSec').classList.toggle('hidden', !need.length);
+  $('#stNeed').innerHTML = need.map((t) => `<div class="tr trow" data-sttask="${t.id}"><div style="min-width:0"><div class="t">${esc(t.title)}</div><div class="sub">${esc(t.agent)}${pendingFor(t.id) ? ' · answer sent, waiting for laptop' : ''}</div></div><span class="tag ${t.status}">${t.status === 'review' ? 'review' : 'stuck'}</span></div>`).join('');
+  const crew = ST.agents.filter((a) => !a.overseer);
+  $('#stRooms').innerHTML = ST.rooms.map((r) => { const ag = crew.filter((a) => a.room === r.id); return `<div class="room"><div class="roomh"><b>${esc(r.name)}</b><span class="dim" style="font-size:12px">${ag.length} agent${ag.length === 1 ? '' : 's'}</span></div>
+    <div class="gear">${r.gear.map((g) => `<span>${esc(g)}</span>`).join('')}</div>
+    <div class="floor">${ag.map((a) => { const j = a.jobs.find((x) => x.status === 'running') || a.jobs[0]; return `<div class="ag" data-stjob="${a.id}">${stick(a.status)}<b>${esc(a.name)}</b><span class="c">${esc(a.cls)} · ${esc(a.model)} · Lv ${a.level}</span><span class="s">${STL[a.status] || a.status}</span>${j && a.status !== 'idle' ? `<span class="j">${esc(j.title)}</span>` : ''}</div>`; }).join('') || '<div class="dim" style="font-size:13px;padding:10px">empty room</div>'}</div></div>`; }).join('');
+  const jobs = ts.filter((t) => !['review', 'blocked'].includes(t.status));
+  $('#stJobs').innerHTML = jobs.map((t) => `<div class="tr trow" data-sttask="${t.id}"><div style="min-width:0"><div class="t">${esc(t.title)}</div><div class="sub">${esc(t.agent)}</div></div><span class="tag ${t.status}">${t.status === 'running' ? 'working' : t.status === 'ready' ? 'up next' : t.status}</span></div>`).join('') || '<div class="tr dim">Nothing running or queued.</div>';
+  const ord = STO.filter((o) => o.state !== 'done' || Date.now() - (o.doneAt || 0) < 3600000).slice(-8).reverse();
+  $('#stOrdSec').classList.toggle('hidden', !ord.length);
+  $('#stOrders').innerHTML = ord.map((o) => `<div class="tr trow"><div style="min-width:0"><div class="t">${esc(o.type === 'job' ? o.text : (o.type === 'approve' ? 'Approve: ' : 'Send back: ') + (ts.find((t) => t.id === o.taskId)?.title || o.taskId))}</div><div class="sub">${o.type === 'job' ? 'to ' + esc(agentName(o.agent)) + ' · ' : ''}${ago(o.at)} ago${o.result && o.state === 'failed' ? ' · ' + esc(o.result) : ''}</div></div><span class="tag ${o.state === 'done' ? 'running' : o.state === 'failed' ? 'blocked' : ''}">${o.state === 'new' ? 'waiting for laptop' : o.state}</span></div>`).join('');
+}
+const agentName = (id) => ST?.agents.find((a) => a.id === id)?.name || id;
+const pendingFor = (id) => STO.some((o) => o.taskId === id && o.state === 'new');
+async function sendOrder(o) {
+  o = { id: 'o' + Date.now().toString(36), at: Date.now(), state: 'new', ...o };
+  STO = await mutate('orders.json', [], (cur) => [...(Array.isArray(cur) ? cur : []), o], 'order from phone');
+  renderStation();
+}
+function stJobSheet(agent) {
+  const opts = (ST?.agents || []).map((a) => `<option value="${a.id}" ${a.id === agent ? 'selected' : ''}>${esc(a.name)}${a.overseer ? ' (boss)' : ' · ' + esc(a.cls)}</option>`).join('');
+  $('#stSheetIn').innerHTML = `<div class="sheeth"><h3>Give a job</h3><button class="ibtn" data-close="stSheet">&times;</button></div>
+    <div class="field"><div class="fl">Agent</div><select id="stAg">${opts}</select></div>
+    <div class="field"><div class="fl">What should they do?</div><textarea id="stTxt" rows="6" placeholder="Find 10 trending Roblox simulator ideas from this week, with links and player counts"></textarea></div>
+    <div class="err" id="stErr"></div>
+    <div class="acts"><button class="btn" data-close="stSheet">Cancel</button><button class="btn pri" id="stSend">Send</button></div>`;
+  $('#stSheet').classList.add('on'); $('#stTxt').focus();
+  $('#stSend').onclick = async () => { const text = $('#stTxt').value.trim(); if (!text) return; $('#stSend').disabled = true;
+    try { await sendOrder({ type: 'job', agent: $('#stAg').value, text }); closeSheet('stSheet'); toast(Date.now() - ST.at < 12 * 60000 ? 'Sent. Starts within a minute.' : 'Saved. Runs when the laptop is back on.'); }
+    catch (e) { $('#stErr').textContent = e.message; $('#stSend').disabled = false; } };
+}
+function stTaskSheet(id) {
+  const t = ST.tasks.find((x) => x.id === id); if (!t) return;
+  const can = t.status === 'review' || t.status === 'blocked';
+  $('#stSheetIn').innerHTML = `<div class="sheeth"><h3 style="margin-right:10px">${esc(t.title)}</h3><button class="ibtn" data-close="stSheet">&times;</button></div>
+    <div class="mut" style="font-size:13px">${esc(t.agent)} · <span class="tag ${t.status}">${t.status}</span></div>
+    ${t.summary ? `<div class="sumbox">${esc(t.summary)}</div>` : '<p class="dim" style="font-size:13px">No summary yet. Screenshots and full logs are in Agent Studio on the laptop.</p>'}
+    ${can ? `<div class="field"><div class="fl">${t.status === 'blocked' ? 'Your answer' : 'Note / what to change'}</div><textarea id="stNote" rows="3"></textarea></div>
+    <div class="err" id="stErr"></div>
+    <div class="acts">${t.status === 'review' ? '<button class="btn" id="stBack">Send back</button><button class="btn pri" id="stOk">Approve</button>' : '<button class="btn pri" id="stAns">Answer + restart</button>'}</div>` : ''}`;
+  $('#stSheet').classList.add('on');
+  const go = (type, needNote) => async () => { const note = $('#stNote').value.trim(); if (needNote && !note) { $('#stErr').textContent = 'Say what to change.'; return; }
+    try { await sendOrder({ type, taskId: id, text: note }); closeSheet('stSheet'); toast('Sent'); } catch (e) { $('#stErr').textContent = e.message; } };
+  if ($('#stOk')) $('#stOk').onclick = go('approve'); if ($('#stBack')) $('#stBack').onclick = go('changes', true); if ($('#stAns')) $('#stAns').onclick = go('unblock', true);
+}
+document.addEventListener('click', (e) => {
+  const j = e.target.closest('[data-stjob]'); if (j) return stJobSheet(j.dataset.stjob);
+  const t = e.target.closest('[data-sttask]'); if (t) return stTaskSheet(t.dataset.sttask);
+});
+setInterval(() => TOKEN && view === 'station' && document.visibilityState === 'visible' && loadStation(), 30000);
+
 // ---------- shell ----------
 function closeSheet(id) { $('#' + id).classList.remove('on'); if (id === 'qSheet') openId = null; }
 document.addEventListener('click', (e) => { const c = e.target.closest('[data-close]'); if (c) closeSheet(c.dataset.close); else if (e.target.classList.contains('sheet')) closeSheet(e.target.id); });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') $$('.sheet.on').forEach((s) => closeSheet(s.id)); });
 function setView(v) {
   view = v; $$('#tabs button, #bnav button').forEach((b) => b.classList.toggle('on', b.dataset.v === v));
-  $('#v-stats').classList.toggle('hidden', v !== 'stats'); $('#v-queue').classList.toggle('hidden', v !== 'queue');
+  $('#v-stats').classList.toggle('hidden', v !== 'stats'); $('#v-queue').classList.toggle('hidden', v !== 'queue'); $('#v-station').classList.toggle('hidden', v !== 'station'); if (v === 'station' && TOKEN) loadStation();
   history.replaceState(null, '', '#' + v); if (v === 'stats' && S) drawChart(); scrollTo({ top: 0 });
 }
 $$('#tabs button, #bnav button').forEach((b) => b.onclick = () => setView(b.dataset.v));
@@ -859,6 +975,7 @@ $('#gateGo').onclick = () => tryLogin($('#gateTok').value);
 $('#gateTok').onkeydown = (e) => e.key === 'Enter' && tryLogin($('#gateTok').value);
 addEventListener('resize', () => S && view === 'stats' && drawChart());
 if (location.hash === '#queue') setView('queue');
+if (location.hash === '#station') setView('station');
 if (TOKEN) load(); else logout();
 setInterval(() => TOKEN && !runPoll && document.visibilityState === 'visible' && load(), 5 * 60000);
 setInterval(async () => {
