@@ -359,7 +359,12 @@ textarea{min-height:96px;resize:vertical}
     <div class="sec hidden" id="ctMir"><div class="sech"><h2>Mirror lane</h2><span class="dim" style="font-size:12px">1-day options on Alpaca paper · fake $100k</span></div>
       <div class="kpis" id="ctMirK" style="margin-top:0"></div>
       <div class="dim" style="font-size:12.5px;margin:8px 0" id="ctMirCmp"></div>
-      <div class="tbl" id="ctMirT"></div></div>
+      <div class="tbl" id="ctMirT"></div>
+      <div class="sech" style="margin-top:16px"><h2 style="font-size:12px">Straight from your Alpaca paper account</h2><span class="dim" style="font-size:12px" id="ctApAt"></span></div>
+      <div class="kpis" id="ctApK" style="margin-top:0"></div>
+      <div id="ctApEq" style="margin-top:8px"></div>
+      <div class="tbl" id="ctApPos" style="margin-top:8px"></div>
+      <div class="tbl" id="ctApOrd" style="margin-top:8px"></div></div>
     <div class="sec"><div class="sech"><h2>League</h2><span class="dim" style="font-size:12px" id="ctLgNote"></span></div><div class="lg" id="ctLg"></div><button class="more" id="ctLgMore"></button></div>
     <div class="sec"><div class="chart"><div class="charth"><span class="mut" style="font-size:13px">Balance</span><span class="num" id="ctNow" style="font-size:13px"></span></div><div id="ctEq"></div></div><div class="sumbox" id="ctOpt" style="margin-top:8px;white-space:normal;font-size:13px"></div><div class="tbl hidden" id="ctDays" style="margin-top:8px"></div></div>
     <div class="sec"><div class="sech"><h2>Tickers</h2></div><div class="tks" id="ctTick"></div><button class="more" id="ctTkMore"></button></div>
@@ -1217,7 +1222,7 @@ function renderCity() {
   $('#ctLog').innerHTML = (CT.log || []).slice(0, 40).map((l) => `<div class="ctlog"><span class="dim num">${etTime(l.t * 1000)}</span><span>${esc(nm[l.bot] || l.kind)}</span><span class="${l.kind === 'win' ? 'up' : l.kind === 'loss' ? 'down' : 'mut'}">${l.bot ? esc(l.kind) + (l.why ? ' · ' : '') : ''}${esc(l.why || '')}</span><span class="num ${cls(l.pnl || 0)}">${l.pnl != null ? cusd(l.pnl, 4) : l.px ? '@ ' + l.px.toFixed(2) : ''}</span></div>`).join('') || '<div class="ctlog dim" style="grid-template-columns:1fr">No trades yet. They start at the next market open.</div>';
 }
 function renderMirror() {
-  const M = CT?.mirror; $('#ctMir').classList.toggle('hidden', !M || M.startEq == null); if (!M || M.startEq == null) return;
+  const M = CT?.mirror, show = !!M && (M.startEq != null || !!M.alpaca); $('#ctMir').classList.toggle('hidden', !show); if (!show) return;
   const money = (n) => '$' + Math.round(n).toLocaleString();
   $('#ctMirK').innerHTML = [['Balance (paper)', money(M.equity)], ['Today', `<span class="${cls(M.today)}">${cpct(M.today * 100)}</span>`], ['Since start', `<span class="${cls(M.total)}">${cpct(M.total * 100)}</span>`], ['Trades', `${M.n}<span class="dim" style="font-size:14px"> · ${M.wins} won</span>`]]
     .map(([l, v]) => `<div class="kpi"><div class="l">${l}</div><div class="v num">${v}</div></div>`).join('');
@@ -1225,6 +1230,16 @@ function renderMirror() {
   $('#ctMirCmp').innerHTML = `Same stretch-ish: mirror <b class="${cls(M.total)}">${cpct(M.total * 100)}</b> · day bots <span class="${cls(bots)}">${cpct(bots * 100)}</span>${opt != null ? ` · options estimate <span class="${cls(opt)}">${cpct(opt * 100)}</span>` : ''}${M.spy != null ? ` · SPY <span class="${cls(M.spy)}">${cpct(M.spy * 100)}</span>` : ''}${M.avgSpread != null ? ` · avg bid/ask spread ${(M.avgSpread * 100).toFixed(1)}%` : ''}${M.locked ? ` · <span style="color:#e2b93b">${esc(M.locked)}</span>` : ''}${M.err ? ` · <span class="down">${esc(M.err)}</span>` : ''}`;
   const rows = [...(M.open || []).map((p) => `<div class="ctlog" style="grid-template-columns:52px 1fr auto"><span class="dim">open</span><span>${esc(p.qty + 'x ' + p.sym)} <span class="dim">· ${esc(p.why || '')}</span></span><span class="num ${cls(p.pct)}">${cpct(p.pct)}</span></div>`),
     ...(M.trades || []).slice(0, 12).map((t) => `<div class="ctlog" style="grid-template-columns:52px 1fr auto"><span class="dim num">${etTime(t.out)}</span><span>${esc(t.qty + 'x ' + t.sym)} <span class="dim">· ${esc(t.why || '')}</span></span><span class="num ${cls(t.pnl)}">${t.pnl >= 0 ? '+' : '−'}$${Math.abs(t.pnl).toFixed(0)} · ${cpct(t.pct)}</span></div>`)];
+  const A = M.alpaca;
+  if (A) {
+    const usd0 = (n) => '$' + Number(n).toLocaleString(undefined, { maximumFractionDigits: 0 }), day = A.lastEquity ? A.equity / A.lastEquity - 1 : 0;
+    $('#ctApAt').textContent = 'updated ' + ago(A.at) + ' ago';
+    $('#ctApK').innerHTML = [['Equity', usd0(A.equity)], ['Today', `<span class="${cls(day)}">${cpct(day * 100)}</span>`], ['Cash', usd0(A.cash)], ['Buying power', usd0(A.buyingPower)]].map(([l, v]) => `<div class="kpi"><div class="l">${l}</div><div class="v num">${v}</div></div>`).join('');
+    const h = (A.history || []).map((x) => x[1]);
+    $('#ctApEq').innerHTML = h.length > 1 ? `<div style="height:70px">${spark(h, 700, 70, h.at(-1) >= h[0] ? '#4cc38a' : '#e5484d').replace('<svg', '<svg style="width:100%;height:70px"')}</div>` : '';
+    $('#ctApPos').innerHTML = (A.positions || []).map((x) => `<div class="ctlog" style="grid-template-columns:1fr auto auto"><span>${esc(x.qty + 'x ' + x.sym)} <span class="dim">avg $${x.avg.toFixed(2)} · now $${x.price.toFixed(2)}</span></span><span class="num">$${x.value.toFixed(0)}</span><span class="num ${cls(x.upl)}">${x.upl >= 0 ? '+' : '−'}$${Math.abs(x.upl).toFixed(0)} · ${cpct(x.uplpc * 100)}</span></div>`).join('') || '<div class="ctlog dim" style="grid-template-columns:1fr">No open positions in Alpaca.</div>';
+    $('#ctApOrd').innerHTML = (A.orders || []).slice(0, 10).map((o) => `<div class="ctlog" style="grid-template-columns:96px 1fr auto"><span class="dim num">${new Date(o.at).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</span><span>${esc(o.side + ' ' + o.qty + 'x ' + o.sym)} <span class="dim">${o.limit != null ? 'limit $' + o.limit.toFixed(2) : esc(o.type)}${o.filled != null ? ' · filled $' + o.filled.toFixed(2) : ''}</span></span><span class="${o.status === 'filled' ? 'up' : 'mut'}">${esc(o.status)}</span></div>`).join('') || '<div class="ctlog dim" style="grid-template-columns:1fr">No orders yet.</div>';
+  }
   $('#ctMirT').innerHTML = rows.join('') || '<div class="ctlog dim" style="grid-template-columns:1fr">No option trades yet. It trades when the trend / opening-range signals fire on QQQ, SPY or IWM.</div>';
 }
 $('#ctLgMore').onclick = () => { ctLgAll = !ctLgAll; renderCity(); };
