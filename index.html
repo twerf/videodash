@@ -1,0 +1,634 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>VideoDash</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#151925">
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#151925; --panel:#232a3b; --panel2:#2c3549; --ink:#0b0d14; --text:#eef1f8; --mute:#93a0bb;
+  --accent:#ffcf3f; --good:#3ddc84; --bad:#ff5f6d; --r:16px;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:Fredoka,system-ui,sans-serif;font-size:15px}
+body:before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.05;
+  background-image:radial-gradient(circle at 12px 12px,#fff 3px,transparent 4px);background-size:24px 24px}
+header{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:14px;padding:14px 22px;background:var(--bg);border-bottom:3px solid var(--ink)}
+.logo{font-weight:700;font-size:24px;letter-spacing:.5px}
+.logo b{color:var(--accent)}
+nav{display:flex;gap:8px;margin-left:12px}
+.tab{background:var(--panel);color:var(--mute);border:3px solid var(--ink);border-radius:12px;padding:7px 16px;font:600 15px Fredoka;cursor:pointer;box-shadow:0 4px 0 var(--ink)}
+.tab.on{background:var(--accent);color:var(--ink)}
+.tab:active,.btn:active{transform:translateY(3px);box-shadow:0 1px 0 var(--ink)}
+.spacer{flex:1}
+.btn{background:var(--accent);color:var(--ink);border:3px solid var(--ink);border-radius:12px;padding:8px 16px;font:600 15px Fredoka;cursor:pointer;box-shadow:0 4px 0 var(--ink);white-space:nowrap}
+.btn.alt{background:var(--panel2);color:var(--text)}
+.btn.green{background:var(--good)}
+.btn.red{background:var(--bad);color:#fff}
+.btn.sm{padding:4px 10px;font-size:13px;border-radius:10px;box-shadow:0 3px 0 var(--ink)}
+.btn:disabled{opacity:.5;cursor:wait}
+.muted{color:var(--mute)}
+main{padding:22px;max-width:1400px;margin:0 auto;position:relative}
+.panel{background:var(--panel);border:3px solid var(--ink);border-radius:var(--r);box-shadow:0 6px 0 var(--ink);padding:18px}
+.panel h3{margin:0 0 12px;font-size:17px;font-weight:600}
+.grid{display:grid;gap:18px}
+.tiles{grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}
+.tile .k{color:var(--mute);font-size:13px;font-weight:500;text-transform:uppercase;letter-spacing:.6px}
+.tile .v{font-size:32px;font-weight:700;margin-top:4px}
+.delta{font-size:13px;font-weight:600}
+.delta.up{color:var(--good)} .delta.down{color:var(--bad)}
+.accts{grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
+.acct{position:relative;overflow:hidden}
+.acct .stripe{position:absolute;left:0;top:0;bottom:0;width:8px}
+.acct .top{display:flex;gap:12px;align-items:center;margin-bottom:12px}
+.av{width:46px;height:46px;border-radius:50%;border:3px solid var(--ink);object-fit:cover;background:var(--panel2);display:grid;place-items:center;font-weight:700;font-size:20px;flex:none}
+.pill{display:inline-block;font-size:12px;font-weight:600;padding:2px 9px;border-radius:99px;border:2px solid var(--ink);color:var(--ink)}
+.kv{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.kv>div{background:var(--panel2);border:2px solid var(--ink);border-radius:10px;padding:7px 9px}
+.kv .k{font-size:11px;color:var(--mute);text-transform:uppercase;letter-spacing:.5px}
+.kv .v{font-size:18px;font-weight:600}
+.two{grid-template-columns:minmax(0,2fr) minmax(0,1fr)}
+.panel{min-width:0}
+body{overflow-x:hidden}
+@media(max-width:1000px){.two{grid-template-columns:1fr}}
+canvas{width:100%;display:block}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:13px;margin-top:8px}
+.legend>span:before{content:"";display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;background:var(--c);border:2px solid var(--ink);vertical-align:-1px}
+.vrow{display:grid;grid-template-columns:64px 1fr repeat(7,minmax(60px,82px));gap:10px;align-items:center;padding:8px;border-bottom:2px solid #1a2030}
+.vrow.head{color:var(--mute);font-size:12px;text-transform:uppercase;letter-spacing:.5px;border-bottom:3px solid var(--ink);cursor:default}
+.vrow.head div[data-s]{cursor:pointer}
+.vrow.head div.sorted{color:var(--accent)}
+.vrow .num{text-align:right;font-variant-numeric:tabular-nums;font-weight:500}
+.vrow .t{overflow:hidden}
+.vrow .t a{color:var(--text);text-decoration:none;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:500}
+.vrow .t a:hover{color:var(--accent)}
+.vrow .t small{color:var(--mute)}
+.thumb{width:64px;height:84px;object-fit:cover;border-radius:8px;border:2px solid var(--ink);background:var(--panel2)}
+.bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+input,select,textarea{background:var(--panel2);color:var(--text);border:3px solid var(--ink);border-radius:10px;padding:8px 10px;font:500 15px Fredoka;outline:none}
+input:focus,select:focus,textarea:focus{border-color:var(--accent)}
+textarea{width:100%;resize:vertical;min-height:90px}
+label{display:block;font-size:13px;color:var(--mute);margin:12px 0 5px;font-weight:500}
+.qgrid{grid-template-columns:repeat(auto-fill,minmax(330px,1fr))}
+.qcard .vload{height:200px;cursor:pointer;flex-direction:column}
+.qcard video{width:100%;height:340px;object-fit:contain;background:#000;border:3px solid var(--ink);border-radius:12px}
+.novid{height:120px;display:grid;place-items:center;border:3px dashed #3a4560;border-radius:12px;color:var(--mute)}
+.qcard h4{margin:12px 0 6px;font-size:17px}
+.desc{white-space:pre-wrap;font-size:14px;color:#cdd4e4;max-height:120px;overflow:auto}
+.tags{display:flex;flex-wrap:wrap;gap:5px;margin:8px 0}
+.tag{background:#33405c;border:2px solid var(--ink);border-radius:8px;padding:1px 7px;font-size:13px}
+.qact{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.status{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;padding:2px 9px;border-radius:8px;border:2px solid var(--ink);color:var(--ink)}
+.s-draft{background:#93a0bb}.s-ready{background:var(--accent)}.s-posted{background:var(--good)}
+.dests{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.dest{font-size:12px;padding:3px 8px;border-radius:8px;border:2px solid var(--ink);cursor:pointer;background:var(--panel2);user-select:none}
+.dest.done{color:var(--ink);text-decoration:line-through}
+.modal{position:fixed;inset:0;background:#0009;display:none;place-items:center;z-index:20;padding:20px}
+.modal.on{display:grid}
+.modal .panel{width:min(720px,100%);max-height:92vh;overflow:auto}
+.drop{border:3px dashed #4a5878;border-radius:12px;padding:18px;text-align:center;color:var(--mute);cursor:pointer}
+.drop.hover{border-color:var(--accent);color:var(--accent)}
+.checks{display:flex;gap:8px;flex-wrap:wrap}
+.checks label{margin:0;display:flex;align-items:center;gap:6px;background:var(--panel2);border:2px solid var(--ink);border-radius:10px;padding:6px 10px;color:var(--text);cursor:pointer}
+.count{float:right;font-size:12px}
+.count.over{color:var(--bad)}
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:var(--accent);color:var(--ink);border:3px solid var(--ink);border-radius:12px;padding:9px 18px;font-weight:600;box-shadow:0 5px 0 var(--ink);display:none;z-index:30}
+.err{color:var(--bad);font-size:13px}
+.empty{padding:40px;text-align:center;color:var(--mute)}
+.top5 a{display:flex;gap:10px;align-items:center;color:var(--text);text-decoration:none;padding:6px 0;border-bottom:2px solid #1a2030}
+.top5 img{width:38px;height:50px;object-fit:cover;border-radius:6px;border:2px solid var(--ink)}
+.top5 .tt{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:14px}
+.top5 b{font-variant-numeric:tabular-nums}
+.hidden{display:none!important}
+@media(max-width:760px){
+ header{flex-wrap:wrap;padding:10px 12px;gap:8px}
+ nav{order:3;width:100%;margin:0;overflow-x:auto}
+ .tab{padding:6px 12px;font-size:14px}
+ #updated{font-size:12px}
+ main{padding:12px}
+ .tiles{grid-template-columns:1fr 1fr;gap:10px}
+ .tile .v{font-size:24px}
+ .accts,.qgrid{grid-template-columns:1fr}
+ .vrow{grid-template-columns:52px 1fr 64px 64px;gap:8px}
+ .vrow>:nth-child(n+5){display:none}
+ .vrow .thumb{width:52px;height:68px}
+ .qcard video{height:420px}
+ .modal{padding:8px}
+ .modal .grid{grid-template-columns:1fr!important}
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">video<b>dash</b></div>
+  <nav>
+    <button class="tab on" data-tab="overview">Overview</button>
+    <button class="tab" data-tab="videos">Videos</button>
+    <button class="tab" data-tab="queue">Queue</button>
+    <button class="tab" data-tab="accounts">Accounts</button>
+  </nav>
+  <div class="spacer"></div>
+  <span class="muted" id="updated"></span>
+  <button class="btn" id="refresh">Refresh stats</button>
+</header>
+
+<main>
+  <!-- OVERVIEW -->
+  <section id="overview">
+    <div class="grid tiles" id="tiles"></div>
+    <div class="grid accts" id="acctCards" style="margin-top:18px"></div>
+    <div class="grid two" style="margin-top:18px">
+      <div class="panel">
+        <h3>Views per post <span class="muted" style="font-weight:400;font-size:13px">(last 30 posts, oldest to newest)</span></h3>
+        <canvas id="barChart" height="260"></canvas>
+        <div class="legend" id="legend1"></div>
+      </div>
+      <div class="panel top5">
+        <h3>Top posts</h3>
+        <div id="top5"></div>
+      </div>
+    </div>
+    <div class="panel" style="margin-top:18px">
+      <h3>Total views over time <span class="muted" style="font-weight:400;font-size:13px">(builds up every refresh)</span></h3>
+      <canvas id="lineChart" height="240"></canvas>
+      <div class="legend" id="legend2"></div>
+    </div>
+  </section>
+
+  <!-- VIDEOS -->
+  <section id="videos" class="hidden">
+    <div class="bar">
+      <select id="vAcct"></select>
+      <input id="vSearch" placeholder="search titles / hashtags" style="flex:1;min-width:200px">
+      <span class="muted" id="vCount"></span>
+    </div>
+    <div class="panel" style="padding:8px 12px">
+      <div class="vrow head" id="vHead">
+        <div></div><div>Post</div>
+        <div class="num" data-s="views">Views</div><div class="num" data-s="gain">+24h</div><div class="num" data-s="likes">Likes</div>
+        <div class="num" data-s="comments">Comm.</div><div class="num" data-s="shares">Shares</div><div class="num" data-s="saves">Saves</div><div class="num" data-s="er">Eng %</div>
+      </div>
+      <div id="vList"></div>
+    </div>
+  </section>
+
+  <!-- QUEUE -->
+  <section id="queue" class="hidden">
+    <div class="bar">
+      <button class="btn green" id="newQ">+ New video</button>
+      <select id="qFilter"><option value="open">Not posted</option><option value="all">All</option><option value="draft">Drafts</option><option value="ready">Ready</option><option value="posted">Posted</option></select>
+      <select id="qAcct"></select>
+      <span class="muted" id="qCount"></span>
+    </div>
+    <div class="grid qgrid" id="qList"></div>
+  </section>
+
+  <!-- ACCOUNTS -->
+  <section id="accounts" class="hidden">
+    <div class="panel" style="max-width:720px">
+      <h3>Tracked accounts</h3>
+      <div id="acctEdit"></div>
+      <div class="qact" style="margin-top:14px">
+        <button class="btn alt" id="addAcct">+ Add account</button>
+        <button class="btn red" id="logoutBtn">Log out this device</button>
+        <button class="btn" id="saveAccts">Save</button>
+      </div>
+      <p class="muted" style="font-size:13px">Stats are scraped by GitHub Actions every 2 hours (no PC needed) and saved in your private repo. YouTube comment counts aren't available from GitHub's servers. Watch-time / retention only exist inside TikTok Studio and YouTube Studio, so they are not here.</p>
+    </div>
+  </section>
+</main>
+
+<div class="modal" id="qModal">
+  <div class="panel">
+    <h3 id="qmTitle">New video</h3>
+    <div class="drop" id="drop">Drop the video here or click to pick it<input type="file" id="file" accept="video/*" hidden></div>
+    <div id="filePrev" style="margin-top:10px"></div>
+    <label>Title <span class="count" id="cTitle"></span></label>
+    <input id="fTitle" style="width:100%" placeholder="hook / on-screen title / YouTube title">
+    <label>Description / caption <span class="count" id="cDesc"></span></label>
+    <textarea id="fDesc" placeholder="caption text"></textarea>
+    <label>Hashtags <span class="muted">(space or comma separated, # optional)</span></label>
+    <input id="fTags" style="width:100%" placeholder="#moviecore #core #fyp">
+    <div class="tags" id="tagPrev"></div>
+    <label>Post to</label>
+    <div class="checks" id="fAccts"></div>
+    <div class="grid" style="grid-template-columns:1fr 1fr;gap:12px">
+      <div><label>Planned for</label><input type="datetime-local" id="fWhen" style="width:100%"></div>
+      <div><label>Status</label><select id="fStatus" style="width:100%"><option value="draft">Draft</option><option value="ready">Ready</option><option value="posted">Posted</option></select></div>
+    </div>
+    <label>Notes</label>
+    <input id="fNotes" style="width:100%" placeholder="sound, cover frame, ideas...">
+    <div class="err" id="fErr"></div>
+    <div class="qact" style="margin-top:16px;justify-content:flex-end">
+      <button class="btn alt" id="qCancel">Cancel</button>
+      <button class="btn green" id="qSave">Save</button>
+    </div>
+  </div>
+</div>
+<div class="modal on" id="gate"><div class="panel" style="max-width:440px">
+  <h3>video<b style="color:var(--accent)">dash</b></h3>
+  <p class="muted" style="font-size:14px">Paste your access key. It stays on this device only.</p>
+  <input id="gateTok" type="password" placeholder="github_pat_..." style="width:100%" autocomplete="off">
+  <div class="err" id="gateMsg" style="margin-top:8px"></div>
+  <div class="qact" style="justify-content:flex-end;margin-top:12px"><button class="btn" id="gateGo">Unlock</button></div>
+</div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const fmt = (n) => n == null ? '-' : n >= 1e6 ? (n / 1e6).toFixed(n >= 1e7 ? 0 : 1) + 'M' : n >= 1e4 ? (n / 1e3).toFixed(n >= 1e5 ? 0 : 1) + 'K' : n.toLocaleString();
+const ago = (t) => { if (!t) return ''; const m = (Date.now() - t) / 60000; return m < 60 ? Math.round(m) + 'm ago' : m < 1440 ? Math.round(m / 60) + 'h ago' : Math.round(m / 1440) + 'd ago'; };
+const platName = (p) => p === 'youtube' ? 'YouTube' : 'TikTok';
+let S = null, vSort = 'views', editing = null, pendingFile = null;
+
+function toast(t) { const el = $('#toast'); el.textContent = t; el.style.display = 'block'; clearTimeout(toast.t); toast.t = setTimeout(() => el.style.display = 'none', 1800); }
+// ---------- GitHub backend (private repo) ----------
+const OWNER = 'twerf', REPO = 'videodash-data', GH = `https://api.github.com/repos/${OWNER}/${REPO}`;
+let TOKEN = localStorage.getItem('vd_token') || '';
+const shas = {};
+async function gh(path, opt = {}, raw = false) {
+  const r = await fetch(path.startsWith('http') ? path : GH + path, { cache: 'no-store', ...opt,
+    headers: { Authorization: 'Bearer ' + TOKEN, Accept: raw ? 'application/vnd.github.raw+json' : 'application/vnd.github+json', ...(opt.body && !(opt.body instanceof Blob) ? { 'Content-Type': 'application/json' } : {}), ...(opt.headers || {}) } });
+  if (r.status === 401) { logout('That key stopped working - paste a new one.'); throw new Error('bad key'); }
+  if (!r.ok) { let m = r.status; try { m = (await r.json()).message || m; } catch {} const e = new Error(m); e.status = r.status; throw e; }
+  return r.status === 204 ? null : raw === 'blob' ? r.blob() : raw ? r.text() : r.json();
+}
+const b64dec = (b) => new TextDecoder().decode(Uint8Array.from(atob(b.replace(/\s/g, '')), (c) => c.charCodeAt(0)));
+const b64enc = (str) => { const by = new TextEncoder().encode(str); let s = ''; for (let i = 0; i < by.length; i += 0x8000) s += String.fromCharCode.apply(null, by.subarray(i, i + 0x8000)); return btoa(s); };
+async function getJson(name, dflt) {
+  try { const j = await gh(`/contents/${name}?ref=main&t=${Date.now()}`); shas[name] = j.sha;
+    return JSON.parse(j.content ? b64dec(j.content) : await gh(`/git/blobs/${j.sha}`, {}, true)); }
+  catch (e) { if (e.status === 404) { shas[name] = undefined; return dflt; } throw e; }
+}
+async function putJson(name, val, msg) {
+  const j = await gh(`/contents/${name}`, { method: 'PUT', body: JSON.stringify({ message: msg || 'update ' + name, content: b64enc(JSON.stringify(val, null, 1)), sha: shas[name], branch: 'main' }) });
+  shas[name] = j.content.sha;
+}
+// read-modify-write with retry on conflicts (scraper commits every 2h)
+async function mutate(name, dflt, fn, msg) {
+  for (let i = 0; i < 4; i++) {
+    const cur = await getJson(name, dflt); const next = fn(cur);
+    try { await putJson(name, next, msg); return next; } catch (e) { if (e.status !== 409 && e.status !== 422) throw e; await new Promise((r) => setTimeout(r, 800)); }
+  }
+  throw new Error('save conflict - try again');
+}
+const fileB64 = (f) => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(',')[1]); r.onerror = rej; r.readAsDataURL(f); });
+let runPoll = null;
+async function api(url, opt = {}) {
+  const u = new URL(url, location.href), p = u.pathname.replace(/^.*\/api\//, '/api/');
+  if (p === '/api/state') {
+    const [accounts, stats, history, queue] = await Promise.all([
+      getJson('accounts.json', []), gh(`/contents/stats.json?ref=main&t=${Date.now()}`, {}, true).then(JSON.parse).catch(() => ({ at: null, accounts: {}, videos: [] })),
+      gh(`/contents/history.json?ref=main&t=${Date.now()}`, {}, true).then(JSON.parse).catch(() => []), getJson('queue.json', [])]);
+    return { accounts, stats, history, queue, refreshing: !!runPoll, errors: Object.fromEntries(Object.entries(stats.errors || {}).filter(([k]) => !k.includes(':'))) };
+  }
+  if (p === '/api/queue' && opt.method === 'POST') {
+    const item = JSON.parse(opt.body), now = Date.now();
+    await mutate('queue.json', [], (q) => {
+      if (item.id) { const i = q.findIndex((x) => x.id === item.id); if (i < 0) throw new Error('item was deleted'); q[i] = { ...q[i], ...item, updated: now }; }
+      else q.unshift({ status: 'draft', ...item, id: uid(), created: now, updated: now });
+      return q;
+    }, item.id ? 'queue: edit' : 'queue: add');
+    return { ok: true };
+  }
+  if (p.startsWith('/api/queue/') && opt.method === 'DELETE') {
+    const id = p.split('/').pop(); let gone;
+    await mutate('queue.json', [], (q) => { gone = q.find((x) => x.id === id); return q.filter((x) => x.id !== id); }, 'queue: delete');
+    if (gone?.file?.branch) await gh(`/git/refs/heads/${gone.file.branch}`, { method: 'DELETE' }).catch(() => {});
+    return { ok: true };
+  }
+  if (p === '/api/upload') {
+    const f = opt.body, id = uid();
+    if (f.size > 95e6) throw new Error('video is over 95MB - GitHub limit is 100MB');
+    const blob = await gh('/git/blobs', { method: 'POST', body: JSON.stringify({ content: await fileB64(f), encoding: 'base64' }) });
+    const tree = await gh('/git/trees', { method: 'POST', body: JSON.stringify({ tree: [{ path: f.name.replace(/[^\w.\- ]+/g, '_') || 'video.mp4', mode: '100644', type: 'blob', sha: blob.sha }] }) });
+    const commit = await gh('/git/commits', { method: 'POST', body: JSON.stringify({ message: 'media ' + f.name, tree: tree.sha, parents: [] }) });
+    const branch = 'media-' + id;
+    await gh('/git/refs', { method: 'POST', body: JSON.stringify({ ref: 'refs/heads/' + branch, sha: commit.sha }) });
+    return { file: { sha: blob.sha, branch, name: f.name, size: f.size, type: f.type || 'video/mp4' } };
+  }
+  if (p === '/api/accounts') {
+    const list = JSON.parse(opt.body).map((a) => ({ id: a.id || `${a.platform === 'youtube' ? 'yt' : 'tt'}-${String(a.handle).replace(/^@/, '')}`, platform: a.platform, handle: String(a.handle).replace(/^@/, ''), color: a.color || '#ffffff' }));
+    await mutate('accounts.json', [], () => list, 'accounts');
+    return { ok: true };
+  }
+  if (p === '/api/refresh') {
+    const started = Date.now() - 5000;
+    await gh('/actions/workflows/scrape.yml/dispatches', { method: 'POST', body: JSON.stringify({ ref: 'main' }) });
+    runPoll = true;
+    try {
+      for (let i = 0; i < 60; i++) {
+        await new Promise((r) => setTimeout(r, 5000));
+        const runs = await gh('/actions/workflows/scrape.yml/runs?per_page=3&event=workflow_dispatch');
+        const run = runs.workflow_runs.find((r) => new Date(r.created_at).getTime() >= started);
+        if (run && run.status === 'completed') { if (run.conclusion !== 'success') throw new Error('scrape run failed'); await new Promise((r) => setTimeout(r, 3000)); break; }
+      }
+    } finally { runPoll = null; }
+    const st = JSON.parse(await gh(`/contents/stats.json?ref=main&t=${Date.now()}`, {}, true));
+    return { ok: true, errors: Object.fromEntries(Object.entries(st.errors || {}).filter(([k]) => !k.includes(':'))) };
+  }
+  throw new Error('unknown endpoint ' + p);
+}
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const videoCache = {};
+async function videoBlob(file) {
+  if (!videoCache[file.sha]) videoCache[file.sha] = gh(`/git/blobs/${file.sha}`, {}, 'blob').then((b) => new Blob([b], { type: file.type || 'video/mp4' }));
+  return videoCache[file.sha];
+}
+function logout(msg) { localStorage.removeItem('vd_token'); TOKEN = ''; $('#gateMsg').textContent = msg || ''; $('#gate').classList.add('on'); }
+async function tryLogin(tok) {
+  TOKEN = tok.trim();
+  try { await gh(''); localStorage.setItem('vd_token', TOKEN); $('#gate').classList.remove('on'); load(); }
+  catch (e) { TOKEN = ''; $('#gateMsg').textContent = e.message === 'bad key' ? 'That key does not work.' : 'Could not reach the data repo: ' + e.message; }
+}
+async function load() { if (!TOKEN) return logout(); try { S = await api('/api/state'); render(); } catch (e) { if (e.message !== 'bad key') toast('load failed: ' + e.message); } }
+const acct = (id) => S.accounts.find((a) => a.id === id) || { handle: id, color: '#888', platform: 'tiktok' };
+
+// history helpers: snapshot closest to N hours ago
+function snapAgo(h) {
+  const target = Date.now() - h * 3600e3, hs = S.history;
+  if (hs.length < 2) return null;
+  let best = hs[0];
+  for (const s of hs) if (s.t <= target) best = s;
+  return best.t === hs[hs.length - 1].t ? null : best;
+}
+const sinceLbl = (s) => Date.now() - s.t >= 23 * 3600e3 ? 'in 24h' : 'since ' + ago(s.t).replace(' ago', '') + ' ago';
+function gainOf(v) { const s = snapAgo(24); if (!s || s.vid[v.id] == null) return null; return (v.views || 0) - s.vid[v.id]; }
+const er = (v) => v.views ? ((v.likes || 0) + (v.comments || 0) + (v.shares || 0) + (v.saves || 0)) / v.views * 100 : null;
+
+function render() {
+  $('#updated').textContent = S.refreshing ? 'refreshing...' : S.stats.at ? 'updated ' + ago(S.stats.at) : 'no data yet';
+  $('#refresh').disabled = S.refreshing;
+  renderOverview(); renderVideos(); renderQueue(); renderAcctEdit();
+}
+
+function renderOverview() {
+  const vids = S.stats.videos, accs = S.accounts;
+  const sum = (k, arr = vids) => arr.reduce((s, v) => s + (v[k] || 0), 0);
+  const followers = accs.reduce((s, a) => s + (S.stats.accounts[a.id]?.followers || 0), 0);
+  const s24 = snapAgo(24);
+  const d = (now, key) => {
+    if (!s24) return '';
+    const before = Object.values(s24.a).reduce((s, x) => s + (x[key] || 0), 0);
+    const diff = now - before;
+    return `<div class="delta ${diff >= 0 ? 'up' : 'down'}">${diff >= 0 ? '+' : ''}${fmt(diff)} ${sinceLbl(s24)}</div>`;
+  };
+  const week = vids.filter((v) => v.posted && Date.now() - v.posted < 7 * 864e5);
+  const q = S.queue.filter((x) => x.status !== 'posted').length;
+  $('#tiles').innerHTML = [
+    ['Total views', fmt(sum('views')), d(sum('views'), 'v')],
+    ['Total likes', fmt(sum('likes')), d(sum('likes'), 'l')],
+    ['Followers', fmt(followers), d(followers, 'f')],
+    ['Posts tracked', vids.length, `<div class="delta muted">${week.length} this week</div>`],
+    ['Avg views / post', fmt(Math.round(sum('views') / (vids.length || 1))), ''],
+    ['In queue', q, `<div class="delta muted">${S.queue.filter((x) => x.status === 'ready').length} ready</div>`],
+  ].map(([k, v, x]) => `<div class="panel tile"><div class="k">${k}</div><div class="v">${v}</div>${x}</div>`).join('');
+
+  $('#acctCards').innerHTML = accs.map((a) => {
+    const st = S.stats.accounts[a.id] || {}, vs = vids.filter((v) => v.account === a.id);
+    const views = sum('views', vs), likes = sum('likes', vs);
+    const best = [...vs].sort((x, y) => (y.views || 0) - (x.views || 0))[0];
+    const prev = s24?.a[a.id];
+    const fd = prev && st.followers != null && prev.f != null ? st.followers - prev.f : null;
+    const vd = prev ? views - prev.v : null;
+    const err = S.errors?.[a.id];
+    const url = a.platform === 'youtube' ? `https://www.youtube.com/@${a.handle}` : `https://www.tiktok.com/@${a.handle}`;
+    return `<div class="panel acct"><div class="stripe" style="background:${a.color}"></div>
+      <div class="top">${st.avatar ? `<img class="av" src="${esc(st.avatar)}" referrerpolicy="no-referrer">` : `<div class="av" style="color:${a.color}">${esc(a.handle[0].toUpperCase())}</div>`}
+        <div style="flex:1;min-width:0"><a href="${url}" target="_blank" style="color:var(--text);text-decoration:none;font-weight:600;font-size:17px">@${esc(a.handle)}</a><br>
+        <span class="pill" style="background:${a.color}">${platName(a.platform)}</span></div></div>
+      <div class="kv">
+        <div><div class="k">Followers</div><div class="v">${fmt(st.followers)}</div>${fd != null ? `<div class="delta ${fd >= 0 ? 'up' : 'down'}">${fd >= 0 ? '+' : ''}${fd}</div>` : ''}</div>
+        <div><div class="k">Views</div><div class="v">${fmt(views)}</div>${vd != null ? `<div class="delta ${vd >= 0 ? 'up' : 'down'}">+${fmt(vd)}</div>` : ''}</div>
+        <div><div class="k">Likes</div><div class="v">${fmt(likes)}</div></div>
+        <div><div class="k">Posts</div><div class="v">${vs.length}</div></div>
+        <div><div class="k">Avg views</div><div class="v">${fmt(Math.round(views / (vs.length || 1)))}</div></div>
+        <div><div class="k">Best</div><div class="v">${fmt(best?.views)}</div></div>
+      </div>${err ? `<div class="err" style="margin-top:8px">last refresh failed: ${esc(err)}</div>` : ''}</div>`;
+  }).join('');
+
+  const legend = accs.map((a) => `<span style="--c:${a.color}">@${esc(a.handle)} <span class="muted">${platName(a.platform)}</span></span>`).join('');
+  $('#legend1').innerHTML = legend; $('#legend2').innerHTML = legend;
+  const recent = vids.filter((v) => v.posted).sort((a, b) => a.posted - b.posted).slice(-30);
+  barChart($('#barChart'), recent);
+  lineChart($('#lineChart'));
+
+  $('#top5').innerHTML = [...vids].sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 7).map((v) =>
+    `<a href="${esc(v.url)}" target="_blank"><img src="${esc(v.thumb || '')}" referrerpolicy="no-referrer" onerror="this.style.visibility='hidden'">
+     <div class="tt">${esc(v.title)}<br><small class="muted">@${esc(acct(v.account).handle)} - ${ago(v.posted)}</small></div><b>${fmt(v.views)}</b></a>`).join('') || '<div class="empty">no posts yet</div>';
+}
+
+function setupCanvas(c) {
+  const dpr = devicePixelRatio || 1, w = c.clientWidth, h = +c.getAttribute('height');
+  c.width = w * dpr; c.height = h * dpr; c.style.height = h + 'px';
+  const x = c.getContext('2d'); x.scale(dpr, dpr); x.font = '500 12px Fredoka'; return [x, w, h];
+}
+function axes(x, w, h, max, pad) {
+  x.strokeStyle = '#33405c'; x.fillStyle = '#93a0bb'; x.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) {
+    const y = pad.t + (h - pad.t - pad.b) * (1 - i / 4);
+    x.beginPath(); x.moveTo(pad.l, y); x.lineTo(w - pad.r, y); x.stroke();
+    x.fillText(fmt(Math.round(max * i / 4)), 4, y + 4);
+  }
+}
+function niceMax(m) { if (m <= 0) return 10; const p = 10 ** Math.floor(Math.log10(m)); return Math.ceil(m / p * 1.1) * p; }
+function barChart(c, vids) {
+  const [x, w, h] = setupCanvas(c), pad = { l: 46, r: 8, t: 10, b: 24 };
+  if (!vids.length) { x.fillStyle = '#93a0bb'; x.fillText('no data yet - hit Refresh stats', w / 2 - 80, h / 2); return; }
+  const max = niceMax(Math.max(...vids.map((v) => v.views || 0)));
+  axes(x, w, h, max, pad);
+  const bw = (w - pad.l - pad.r) / vids.length;
+  c._hits = [];
+  vids.forEach((v, i) => {
+    const bh = (h - pad.t - pad.b) * (v.views || 0) / max, bx = pad.l + i * bw + 3, by = h - pad.b - bh;
+    x.fillStyle = acct(v.account).color; x.strokeStyle = '#0b0d14'; x.lineWidth = 2;
+    x.beginPath(); x.roundRect(bx, by, Math.max(bw - 6, 2), Math.max(bh, 2), 4); x.fill(); x.stroke();
+    c._hits.push([bx, bx + bw - 6, v]);
+  });
+  const first = vids[0].posted, last = vids[vids.length - 1].posted;
+  x.fillStyle = '#93a0bb';
+  x.fillText(new Date(first).toLocaleDateString(), pad.l, h - 6);
+  const ls = new Date(last).toLocaleDateString(); x.fillText(ls, w - pad.r - x.measureText(ls).width, h - 6);
+  c.onmousemove = (e) => { const r = c.getBoundingClientRect(), mx = e.clientX - r.left; const hit = c._hits.find(([a, b]) => mx >= a && mx <= b); c.title = hit ? `${fmt(hit[2].views)} views - ${hit[2].title}` : ''; c.style.cursor = hit ? 'pointer' : ''; };
+  c.onclick = (e) => { const r = c.getBoundingClientRect(), mx = e.clientX - r.left; const hit = c._hits.find(([a, b]) => mx >= a && mx <= b); if (hit) open(hit[2].url, '_blank'); };
+}
+function lineChart(c) {
+  const [x, w, h] = setupCanvas(c), pad = { l: 46, r: 10, t: 10, b: 24 }, hs = S.history;
+  if (hs.length < 2) { x.fillStyle = '#93a0bb'; x.fillText('needs at least 2 refreshes to draw a trend', w / 2 - 120, h / 2); return; }
+  const t0 = hs[0].t, t1 = hs[hs.length - 1].t;
+  const max = niceMax(Math.max(...hs.flatMap((s) => Object.values(s.a).map((a) => a.v || 0))));
+  axes(x, w, h, max, pad);
+  const X = (t) => pad.l + (w - pad.l - pad.r) * (t - t0) / ((t1 - t0) || 1), Y = (v) => h - pad.b - (h - pad.t - pad.b) * v / max;
+  for (const a of S.accounts) {
+    x.strokeStyle = a.color; x.lineWidth = 3; x.beginPath();
+    let started = false;
+    for (const s of hs) { const p = s.a[a.id]; if (!p) continue; started ? x.lineTo(X(s.t), Y(p.v)) : x.moveTo(X(s.t), Y(p.v)); started = true; }
+    x.stroke();
+  }
+  x.fillStyle = '#93a0bb';
+  x.fillText(new Date(t0).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric' }), pad.l, h - 6);
+  const e = new Date(t1).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric' }); x.fillText(e, w - pad.r - x.measureText(e).width, h - 6);
+}
+
+function renderVideos() {
+  const sel = $('#vAcct'), cur = sel.value;
+  sel.innerHTML = `<option value="">All accounts</option>` + S.accounts.map((a) => `<option value="${a.id}">@${esc(a.handle)} (${platName(a.platform)})</option>`).join('');
+  sel.value = cur;
+  const qs = $('#vSearch').value.toLowerCase();
+  let vs = S.stats.videos.filter((v) => (!sel.value || v.account === sel.value) && (!qs || (v.title + ' ' + (v.description || '')).toLowerCase().includes(qs)));
+  const key = { views: (v) => v.views, gain: gainOf, likes: (v) => v.likes, comments: (v) => v.comments, shares: (v) => v.shares, saves: (v) => v.saves, er, posted: (v) => v.posted }[vSort];
+  vs.sort((a, b) => (key(b) ?? -1) - (key(a) ?? -1));
+  $$('#vHead [data-s]').forEach((d) => d.classList.toggle('sorted', d.dataset.s === vSort));
+  $('#vCount').textContent = vs.length + ' posts';
+  $('#vList').innerHTML = vs.map((v) => {
+    const a = acct(v.account), g = gainOf(v), e = er(v);
+    return `<div class="vrow"><img class="thumb" src="${esc(v.thumb || '')}" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.visibility='hidden'">
+      <div class="t"><a href="${esc(v.url)}" target="_blank" title="${esc(v.title)}">${esc(v.title) || '(no caption)'}</a>
+      <small><span style="color:${a.color}">@${esc(a.handle)}</span> - ${platName(v.platform)}${v.short ? ' Short' : ''} - ${ago(v.posted)}${v.duration ? ' - ' + v.duration + 's' : ''}${v.stale ? ' - not in latest scrape' : ''}</small></div>
+      <div class="num">${fmt(v.views)}</div><div class="num ${g > 0 ? 'delta up' : ''}">${g == null ? '-' : '+' + fmt(g)}</div><div class="num">${fmt(v.likes)}</div><div class="num">${fmt(v.comments)}</div>
+      <div class="num">${fmt(v.shares)}</div><div class="num">${fmt(v.saves)}</div><div class="num">${e == null ? '-' : e.toFixed(1) + '%'}</div></div>`;
+  }).join('') || '<div class="empty">no posts - hit Refresh stats</div>';
+}
+
+// ---------- queue ----------
+const parseTags = (s) => [...new Set(String(s || '').split(/[\s,]+/).map((t) => t.replace(/^#+/, '').trim()).filter(Boolean))].map((t) => '#' + t);
+const captionOf = (q) => [q.description, parseTags(q.hashtags).join(' ')].filter(Boolean).join('\n\n');
+function renderQueue() {
+  const sel = $('#qAcct'), cur = sel.value;
+  sel.innerHTML = `<option value="">Any account</option>` + S.accounts.map((a) => `<option value="${a.id}">@${esc(a.handle)} (${platName(a.platform)})</option>`).join('');
+  sel.value = cur;
+  const f = $('#qFilter').value;
+  const list = S.queue.filter((q) => (f === 'all' || (f === 'open' ? q.status !== 'posted' : q.status === f)) && (!sel.value || (q.accounts || []).includes(sel.value)))
+    .sort((a, b) => (a.when || '9999').localeCompare(b.when || '9999'));
+  $('#qCount').textContent = list.length + ' videos';
+  $('#qList').innerHTML = list.map((q) => {
+    const posted = q.postedTo || {};
+    return `<div class="panel qcard" data-id="${q.id}">
+      ${q.file ? `<div class="novid vload" data-act="loadvid">tap to load video <small>(${(q.file.size / 1e6).toFixed(1)} MB)</small></div>` : '<div class="novid">no video file attached</div>'}
+      <div style="display:flex;gap:8px;align-items:center;margin-top:10px"><span class="status s-${q.status}">${q.status}</span>
+        <span class="muted" style="font-size:13px">${q.when ? new Date(q.when).toLocaleString([], { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : 'no date set'}</span></div>
+      <h4>${esc(q.title) || '<span class="muted">untitled</span>'}</h4>
+      <div class="desc">${esc(q.description)}</div>
+      <div class="tags">${parseTags(q.hashtags).map((t) => `<span class="tag">${esc(t)}</span>`).join('')}</div>
+      ${q.notes ? `<div class="muted" style="font-size:13px">Note: ${esc(q.notes)}</div>` : ''}
+      <div class="dests">${(q.accounts || []).map((id) => { const a = acct(id); return `<span class="dest ${posted[id] ? 'done' : ''}" data-dest="${id}" style="${posted[id] ? 'background:' + a.color : ''}" title="click to mark posted">@${esc(a.handle)} ${platName(a.platform)}</span>`; }).join('')}</div>
+      <div class="qact">
+        <button class="btn sm" data-copy="caption">Copy caption</button>
+        <button class="btn sm alt" data-copy="title">Copy title</button>
+        <button class="btn sm alt" data-copy="tags">Copy tags</button>
+        ${q.file ? `<button class="btn sm alt" data-act="save">Save video</button>` : ''}
+        <div class="spacer"></div>
+        <button class="btn sm alt" data-act="edit">Edit</button>
+        <button class="btn sm red" data-act="del">Delete</button>
+      </div></div>`;
+  }).join('') || '<div class="empty">nothing queued - hit "+ New video"</div>';
+}
+$('#qList').addEventListener('click', async (e) => {
+  const card = e.target.closest('.qcard'); if (!card) return;
+  const q = S.queue.find((x) => x.id === card.dataset.id);
+  const c = e.target.dataset.copy;
+  if (c) { await navigator.clipboard.writeText(c === 'caption' ? captionOf(q) : c === 'title' ? q.title || '' : parseTags(q.hashtags).join(' ')); return toast('copied ' + c); }
+  const dest = e.target.closest('[data-dest]');
+  if (dest) {
+    const postedTo = { ...(q.postedTo || {}) }; const id = dest.dataset.dest;
+    postedTo[id] ? delete postedTo[id] : postedTo[id] = Date.now();
+    const all = (q.accounts || []).length && q.accounts.every((a) => postedTo[a]);
+    await api('/api/queue', { method: 'POST', body: JSON.stringify({ id: q.id, postedTo, status: all ? 'posted' : q.status === 'posted' ? 'ready' : q.status }) });
+    return load();
+  }
+  if (e.target.closest('[data-act=loadvid]')) {
+    const box = e.target.closest('[data-act=loadvid]'); box.textContent = 'loading...';
+    try { const b = await videoBlob(q.file); const v = document.createElement('video'); v.controls = true; v.playsInline = true; v.src = URL.createObjectURL(b); box.replaceWith(v); }
+    catch (err) { box.textContent = 'failed: ' + err.message; }
+    return;
+  }
+  if (e.target.dataset.act === 'save') {
+    const btn = e.target; btn.textContent = 'loading...';
+    try {
+      const b = await videoBlob(q.file), f = new File([b], q.file.name || 'video.mp4', { type: b.type });
+      if (navigator.canShare?.({ files: [f] })) await navigator.share({ files: [f] }).catch(() => {});
+      else { const a = document.createElement('a'); a.href = URL.createObjectURL(f); a.download = f.name; a.click(); }
+    } catch (err) { toast('failed: ' + err.message); }
+    btn.textContent = 'Save video'; return;
+  }
+  if (e.target.dataset.act === 'edit') openModal(q);
+  if (e.target.dataset.act === 'del' && confirm('Delete this video and its file?')) { await api('/api/queue/' + q.id, { method: 'DELETE' }); load(); }
+});
+
+function openModal(q = null) {
+  editing = q; pendingFile = null;
+  $('#qmTitle').textContent = q ? 'Edit video' : 'New video';
+  $('#fTitle').value = q?.title || ''; $('#fDesc').value = q?.description || ''; $('#fTags').value = q?.hashtags || '';
+  $('#fWhen').value = q?.when || ''; $('#fStatus').value = q?.status || 'draft'; $('#fNotes').value = q?.notes || ''; $('#fErr').textContent = '';
+  $('#fAccts').innerHTML = S.accounts.map((a) => `<label><input type="checkbox" value="${a.id}" ${q?.accounts?.includes(a.id) ? 'checked' : ''}> <span style="color:${a.color}">@${esc(a.handle)}</span> <span class="muted">${platName(a.platform)}</span></label>`).join('');
+  $('#filePrev').innerHTML = q?.file ? `<span class="muted">current file: ${esc(q.file.name)}</span>` : '';
+  counts(); $('#qModal').classList.add('on');
+}
+function counts() {
+  const t = $('#fTitle').value.length, cap = captionOf({ description: $('#fDesc').value, hashtags: $('#fTags').value }).length;
+  $('#cTitle').textContent = t + '/100 (YT title limit)'; $('#cTitle').className = 'count' + (t > 100 ? ' over' : '');
+  $('#cDesc').textContent = cap + '/2200 with tags (TikTok limit 4000, YT 5000)'; $('#cDesc').className = 'count' + (cap > 2200 ? ' over' : '');
+  $('#tagPrev').innerHTML = parseTags($('#fTags').value).map((t) => `<span class="tag">${esc(t)}</span>`).join('');
+}
+['#fTitle', '#fDesc', '#fTags'].forEach((s) => $(s).addEventListener('input', counts));
+function pickFile(f) { if (!f) return; pendingFile = f; $('#filePrev').innerHTML = `<video src="${URL.createObjectURL(f)}" controls style="width:100%;max-height:260px;background:#000;border-radius:10px"></video><div class="muted">${esc(f.name)} - ${(f.size / 1e6).toFixed(1)} MB</div>`; }
+$('#drop').onclick = () => $('#file').click();
+$('#file').onchange = (e) => pickFile(e.target.files[0]);
+['dragover', 'dragenter'].forEach((ev) => $('#drop').addEventListener(ev, (e) => { e.preventDefault(); $('#drop').classList.add('hover'); }));
+['dragleave', 'drop'].forEach((ev) => $('#drop').addEventListener(ev, (e) => { e.preventDefault(); $('#drop').classList.remove('hover'); }));
+$('#drop').addEventListener('drop', (e) => pickFile(e.dataTransfer.files[0]));
+$('#qCancel').onclick = () => $('#qModal').classList.remove('on');
+$('#newQ').onclick = () => openModal();
+$('#qSave').onclick = async () => {
+  const btn = $('#qSave'); btn.disabled = true; $('#fErr').textContent = '';
+  try {
+    let file = editing?.file || null;
+    if (pendingFile) {
+      btn.textContent = 'Uploading... (keep this open)';
+      file = (await api('/api/upload?name=' + encodeURIComponent(pendingFile.name), { method: 'POST', body: pendingFile })).file;
+    }
+    const item = { title: $('#fTitle').value.trim(), description: $('#fDesc').value.trim(), hashtags: parseTags($('#fTags').value).join(' '),
+      accounts: $$('#fAccts input:checked').map((i) => i.value), when: $('#fWhen').value, status: $('#fStatus').value, notes: $('#fNotes').value.trim(), file };
+    if (editing) item.id = editing.id;
+    await api('/api/queue', { method: 'POST', body: JSON.stringify(item) });
+    $('#qModal').classList.remove('on'); toast('saved'); load();
+  } catch (e) { $('#fErr').textContent = e.message; }
+  btn.disabled = false; btn.textContent = 'Save';
+};
+
+// ---------- accounts ----------
+let draftAccts = null;
+function renderAcctEdit() {
+  if (!draftAccts) draftAccts = S.accounts.map((a) => ({ ...a }));
+  $('#acctEdit').innerHTML = draftAccts.map((a, i) => `<div class="bar" data-i="${i}">
+    <select data-k="platform"><option value="tiktok" ${a.platform === 'tiktok' ? 'selected' : ''}>TikTok</option><option value="youtube" ${a.platform === 'youtube' ? 'selected' : ''}>YouTube</option></select>
+    <input data-k="handle" value="${esc(a.handle)}" placeholder="handle (no @)" style="flex:1">
+    <input data-k="color" type="color" value="${a.color}" style="width:52px;padding:2px;height:42px">
+    <button class="btn sm red" data-rm="${i}">Remove</button></div>`).join('');
+}
+$('#acctEdit').addEventListener('input', (e) => { const row = e.target.closest('[data-i]'); draftAccts[row.dataset.i][e.target.dataset.k] = e.target.value; if (e.target.dataset.k !== 'color') delete draftAccts[row.dataset.i].id; });
+$('#acctEdit').addEventListener('click', (e) => { if (e.target.dataset.rm != null) { draftAccts.splice(+e.target.dataset.rm, 1); renderAcctEdit(); } });
+$('#addAcct').onclick = () => { draftAccts.push({ platform: 'tiktok', handle: '', color: '#4fc3ff' }); renderAcctEdit(); };
+$('#saveAccts').onclick = async () => { await api('/api/accounts', { method: 'PUT', body: JSON.stringify(draftAccts.filter((a) => a.handle.trim())) }); draftAccts = null; toast('saved - refresh stats to pull new accounts'); load(); };
+
+// ---------- misc ----------
+$$('.tab').forEach((t) => t.onclick = () => { $$('.tab').forEach((x) => x.classList.toggle('on', x === t)); $$('main > section').forEach((s) => s.classList.toggle('hidden', s.id !== t.dataset.tab)); location.hash = t.dataset.tab; if (t.dataset.tab === 'overview') renderOverview(); });
+$$('#vHead [data-s]').forEach((d) => d.onclick = () => { vSort = d.dataset.s; renderVideos(); });
+$('#vAcct').onchange = renderVideos; $('#vSearch').oninput = renderVideos;
+$('#qFilter').onchange = renderQueue; $('#qAcct').onchange = renderQueue;
+$('#refresh').onclick = async () => { $('#refresh').disabled = true; $('#updated').textContent = 'refreshing on GitHub... (~1 min)'; try { const r = await api('/api/refresh', { method: 'POST' }); const errs = Object.keys(r.errors || {}); toast(errs.length ? 'some accounts failed: ' + errs.join(', ') : 'stats updated'); } catch (e) { toast('refresh failed'); } load(); };
+addEventListener('resize', () => S && renderOverview());
+if (location.hash) $(`.tab[data-tab="${location.hash.slice(1)}"]`)?.click();
+$('#gateGo').onclick = () => tryLogin($('#gateTok').value); $('#gateTok').onkeydown = (e) => e.key === 'Enter' && tryLogin($('#gateTok').value);
+$('#logoutBtn').onclick = () => confirm('Log out on this device?') && logout();
+if (TOKEN) { $('#gate').classList.remove('on'); load(); } setInterval(() => TOKEN && !runPoll && load(), 5 * 60000);
+</script>
+</body>
+</html>
