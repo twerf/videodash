@@ -252,6 +252,19 @@ textarea{min-height:96px;resize:vertical}
 .tag.review{color:#e2b93b;border-color:#e2b93b55}.tag.blocked{color:var(--down);border-color:#e5484d55}.tag.running{color:var(--up);border-color:#4cc38a55}
 .sumbox{white-space:pre-wrap;font-size:13px;color:var(--tx2);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px 12px;max-height:40vh;overflow:auto;margin:10px 0}
 @media (max-width:720px){.rooms{grid-template-columns:1fr}.ag{width:84px}.boss{align-items:flex-start}}
+
+.stsub{margin:0 0 14px;justify-content:flex-start;flex-wrap:wrap}.stsub button{font-size:13px;padding:5px 11px}
+.lnc{border:1px solid var(--line);border-radius:10px;background:var(--s1);padding:12px 14px;margin-bottom:10px}
+.lnc .hd{display:flex;gap:8px;align-items:center}.lnc .hd b{flex:1}
+.belt{display:flex;align-items:center;gap:6px;overflow-x:auto;margin-top:10px;font-size:12px}
+.belt .bx{border:1px solid var(--line2);border-radius:7px;padding:4px 8px;white-space:nowrap;flex:none}.belt .bx small{display:block;color:var(--tx3);font-size:10.5px}
+.belt .ar{color:var(--tx3);flex:none}
+.obimgs{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:6px;margin-top:8px}.obimgs img{width:100%;aspect-ratio:1;object-fit:contain;background:#fff;border-radius:6px}
+.files{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}.files span{font:11px var(--mono);color:var(--tx2);border:1px solid var(--line);border-radius:5px;padding:1px 5px}
+.dial{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin:6px 0 12px}.dial button{border:1px solid var(--line2);background:var(--s1);border-radius:8px;padding:8px 4px;color:var(--tx2);cursor:pointer;font-size:12.5px}.dial button.on{background:var(--tx);color:var(--bg);border-color:var(--tx)}
+.logl{font-size:12.5px;display:flex;gap:8px;padding:6px 12px;border-top:1px solid var(--line)}.logl:first-child{border-top:0}.logl .k{min-width:70px;font-weight:500}
+.ms{display:flex;gap:8px;align-items:center;padding:8px 12px;border-top:1px solid var(--line);font-size:13px}.ms:first-child{border-top:0}.ms .n{width:34px;color:var(--tx3);font-size:12px}
+@media (max-width:720px){.dial{grid-template-columns:1fr 1fr}}
 </style>
 </head>
 <body>
@@ -300,11 +313,15 @@ textarea{min-height:96px;resize:vertical}
 
   <section id="v-station" class="hidden">
     <div class="stline"><span class="dot" id="stDot"></span><span id="stLine">Loading station...</span></div>
+    <div class="seg stsub" id="stSub"><button data-ss="crew" class="on">Crew</button><button data-ss="lines">Lines</button><button data-ss="outbox">Outbox</button><button data-ss="night">Night shift</button><button data-ss="goals">Goals</button></div>
+    <div id="stX"></div>
+    <div id="stCrew">
     <div class="kpis" id="stKpis"></div>
     <div id="stBoss"></div>
     <div class="sec" id="stNeedSec"><div class="sech"><h2>Needs you</h2></div><div class="tbl" id="stNeed"></div></div>
     <div class="sec"><div class="sech"><h2>Rooms</h2></div><div class="rooms" id="stRooms"></div></div>
     <div class="sec"><div class="sech"><h2>Jobs</h2></div><div class="tbl" id="stJobs"></div></div>
+    </div>
     <div class="sec" id="stOrdSec"><div class="sech"><h2>Sent from phone</h2></div><div class="tbl" id="stOrders"></div></div>
   </section>
 
@@ -907,6 +924,7 @@ function renderStation() {
   $('#stJobs').innerHTML = jobs.map((t) => `<div class="tr trow" data-sttask="${t.id}"><div style="min-width:0"><div class="t">${esc(t.title)}</div><div class="sub">${esc(t.agent)}</div></div><span class="tag ${t.status}">${t.status === 'running' ? 'working' : t.status === 'ready' ? 'up next' : t.status}</span></div>`).join('') || '<div class="tr dim">Nothing running or queued.</div>';
   const ord = STO.filter((o) => o.state !== 'done' || Date.now() - (o.doneAt || 0) < 3600000).slice(-8).reverse();
   $('#stOrdSec').classList.toggle('hidden', !ord.length);
+  renderSub();
   $('#stOrders').innerHTML = ord.map((o) => `<div class="tr trow"><div style="min-width:0"><div class="t">${esc(o.type === 'job' ? o.text : (o.type === 'approve' ? 'Approve: ' : 'Send back: ') + (ts.find((t) => t.id === o.taskId)?.title || o.taskId))}</div><div class="sub">${o.type === 'job' ? 'to ' + esc(agentName(o.agent)) + ' · ' : ''}${ago(o.at)} ago${o.result && o.state === 'failed' ? ' · ' + esc(o.result) : ''}</div></div><span class="tag ${o.state === 'done' ? 'running' : o.state === 'failed' ? 'blocked' : ''}">${o.state === 'new' ? 'waiting for laptop' : o.state}</span></div>`).join('');
 }
 const agentName = (id) => ST?.agents.find((a) => a.id === id)?.name || id;
@@ -946,6 +964,52 @@ document.addEventListener('click', (e) => {
   const j = e.target.closest('[data-stjob]'); if (j) return stJobSheet(j.dataset.stjob);
   const t = e.target.closest('[data-sttask]'); if (t) return stTaskSheet(t.dataset.sttask);
 });
+
+// ---- station sub-tabs: lines / outbox / night shift / goals ----
+let SS = localStorage.vd_ss || 'crew';
+function setSS(v) { SS = localStorage.vd_ss = v; $$('#stSub button').forEach((b) => b.classList.toggle('on', b.dataset.ss === v)); $('#stCrew').classList.toggle('hidden', v !== 'crew'); renderSub(); }
+$$('#stSub button').forEach((b) => b.onclick = () => setSS(b.dataset.ss));
+const imgCache = {};
+async function ghImg(p) { if (!imgCache[p]) imgCache[p] = gh(`/contents/${p}?ref=main`, {}, 'blob').then((b) => URL.createObjectURL(b)).catch(() => ''); return imgCache[p]; }
+function renderSub() {
+  const x = $('#stX'); if (!ST || SS === 'crew') { x.innerHTML = ''; return; }
+  if (SS === 'lines') x.innerHTML = (ST.lines || []).map((l) => `<div class="lnc"><div class="hd"><b>${esc(l.name)}</b><button class="btn pri" data-runline="${l.id}">Send a job</button></div><div class="dim" style="font-size:12.5px;margin-top:2px">${esc(l.desc)}</div>
+      <div class="belt"><span class="bx">INBOX</span>${l.stages.map((s) => `<span class="ar">&rarr;</span><span class="bx">${esc(s.agents.join(' + '))}<small>${esc(s.name)}</small></span>`).join('')}<span class="ar">&rarr;</span><span class="bx">OUTBOX</span></div>
+      ${l.routines.length ? `<div class="dim" style="font-size:12px;margin-top:8px">${l.routines.map((r) => `${esc(r.name)}: ${r.every === 'hours' ? 'every ' + r.hours + 'h' : (r.every === 'weekday' ? 'weekdays ' : 'daily ') + r.at}${r.enabled ? '' : ' (paused)'}`).join(' · ')}</div>` : ''}</div>`).join('') || '<div class="dim">No lines yet. Make them in Agent Studio.</div>';
+  if (SS === 'outbox') {
+    x.innerHTML = (ST.runs || []).filter((r) => r.status !== 'cancelled').map((r) => `<div class="lnc"><div class="hd"><b>${esc(r.name)}</b><span class="tag ${r.status === 'ready' ? 'review' : r.status === 'stuck' ? 'blocked' : r.status === 'running' ? 'running' : ''}">${r.status === 'ready' ? 'ready for you' : r.status === 'running' ? `stage ${r.stageNow + 1}/${r.stages}` : r.status}</span></div>
+      <div class="dim" style="font-size:12px;margin-top:2px">${ago(r.at)} ago${r.by === 'routine' ? ' · routine' : ''} · ${esc(r.input.slice(0, 120))}</div>
+      ${r.imgs.length ? `<div class="obimgs">${r.imgs.map((p) => `<img data-ghimg="${esc(p)}" alt="">`).join('')}</div>` : ''}
+      ${r.files.length ? `<div class="files">${r.files.filter((f) => !/\.(png|jpe?g|webp)$/i.test(f)).map((f) => `<span>${esc(f)}</span>`).join('')}</div>` : ''}
+      ${r.final ? `<div class="acts" style="margin-top:10px"><button class="btn" data-sttask="${r.final}">Details</button><button class="btn pri" data-quickok="${r.final}">Looks good</button></div>` : ''}</div>`).join('') || '<div class="dim">Nothing delivered yet.</div>';
+    $$('[data-ghimg]', x).forEach(async (im) => { im.src = await ghImg(im.dataset.ghimg); });
+  }
+  if (SS === 'night') {
+    const a = ST.auto; if (!a) { x.innerHTML = '<div class="dim">No data.</div>'; return; }
+    const dial = (k, opts) => `<div class="dial">${opts.map(([v, l]) => `<button class="${String(a[k]) === String(v) ? 'on' : ''}" data-auto="${k}" data-v="${v}">${l}</button>`).join('')}</div>`;
+    x.innerHTML = `<div class="fl">On its own <span class="dim">(while you're away from the PC)</span></div>${dial('mode', [['wait', 'Wait'], ['suggest', 'Suggest'], ['small', 'Small jobs'], ['free', 'Free']])}
+      <div class="fl">Reach</div>${dial('reach', [['observe', 'Observe'], ['local', 'Local only'], ['publish', 'Send & publish']])}
+      <div class="fl">Pace (jobs/day)</div>${dial('pace', [[1, 'Light 1'], [3, 'Std 3'], [6, 'Busy 6'], [12, 'Max 12']])}
+      ${a.suggestions.length ? `<div class="sech" style="margin-top:18px"><h2>Suggestions</h2></div><div class="tbl">${a.suggestions.map((g) => `<div class="tr" style="grid-template-columns:1fr auto"><div style="min-width:0"><div class="t" style="font-weight:500">${esc(g.title)}</div><div class="dim" style="font-size:12px">${esc(g.agent)} · ${esc(g.why)}</div></div><div style="display:flex;gap:6px"><button class="btn" data-sug="${g.id}" data-act="dismiss">Skip</button><button class="btn pri" data-sug="${g.id}" data-act="accept">Do it</button></div></div>`).join('')}</div>` : ''}
+      <div class="sech" style="margin-top:18px"><h2>Report</h2></div><div class="tbl">${a.log.map((l) => `<div class="logl"><span class="k ${l.kind === 'skipped' ? 'dim' : l.kind.includes('bad') ? 'down' : 'up'}">${esc(l.kind)}</span><span class="dim">${ago(l.at)}</span><span style="min-width:0">${esc(l.why || '')}</span></div>`).join('') || '<div class="logl dim">No beats yet.</div>'}</div>`;
+  }
+  if (SS === 'goals') {
+    const a = ST.auto || { goals: [] };
+    x.innerHTML = `<div class="field" style="display:flex;gap:8px"><input type="text" id="goalIn" placeholder="New goal, e.g. 3 Etsy sales by Christmas" style="flex:1"><button class="btn pri" id="goalGo">Add</button></div>
+      ${a.goals.slice().reverse().map((g) => `<div class="lnc"><div class="hd"><b>${esc(g.text)}</b><span class="tag ${g.status === 'reached' ? 'running' : ''}">${g.status}</span></div><div class="tbl" style="margin-top:8px">${g.milestones.map((m, i) => `<div class="ms"><span class="n">${m.status === 'done' ? 'done' : i + 1}</span><span style="flex:1">${esc(m.title)} <span class="dim">· ${esc(m.agent)}</span></span>${m.status === 'proposed' ? `<button class="btn" data-msgo="${g.id}|${m.id}">Start</button>` : `<span class="dim" style="font-size:12px">${m.status}</span>`}</div>`).join('') || '<div class="ms dim">Hermes is planning milestones...</div>'}</div></div>`).join('')}`;
+    $('#goalGo').onclick = async () => { const t = $('#goalIn').value.trim(); if (!t) return; await sendOrder({ type: 'goal', text: t }); toast('Sent'); };
+  }
+}
+document.addEventListener('click', async (e) => {
+  const rl = e.target.closest('[data-runline]'); if (rl) { const l = ST.lines.find((x) => x.id === rl.dataset.runline);
+    $('#stSheetIn').innerHTML = `<div class="sheeth"><h3>${esc(l.name)}</h3><button class="ibtn" data-close="stSheet">&times;</button></div><div class="field"><div class="fl">The job <span class="dim">(empty = default)</span></div><textarea id="rlTxt" rows="5" placeholder="${esc(l.defaultInput)}"></textarea></div><div class="acts"><button class="btn" data-close="stSheet">Cancel</button><button class="btn pri" id="rlGo">Start the belt</button></div>`;
+    $('#stSheet').classList.add('on'); $('#rlGo').onclick = async () => { await sendOrder({ type: 'runline', flow: l.id, text: $('#rlTxt').value.trim() }); closeSheet('stSheet'); toast('Sent'); }; return; }
+  const ok = e.target.closest('[data-quickok]'); if (ok) { ok.disabled = true; await sendOrder({ type: 'approve', taskId: ok.dataset.quickok, text: 'Approved from phone Outbox' }); toast('Sent'); return; }
+  const au = e.target.closest('[data-auto]'); if (au) { const v = au.dataset.auto === 'pace' ? Number(au.dataset.v) : au.dataset.v; ST.auto[au.dataset.auto] = v; renderSub(); await sendOrder({ type: 'autonomy', [au.dataset.auto]: v }); toast('Sent'); return; }
+  const sg = e.target.closest('[data-sug]'); if (sg) { sg.disabled = true; await sendOrder({ type: 'suggestion', sid: sg.dataset.sug, act: sg.dataset.act }); toast('Sent'); return; }
+  const mg = e.target.closest('[data-msgo]'); if (mg) { const [g, m] = mg.dataset.msgo.split('|'); mg.disabled = true; await sendOrder({ type: 'milestone', goal: g, milestone: m }); toast('Sent'); return; }
+});
+
 setInterval(() => TOKEN && view === 'station' && document.visibilityState === 'visible' && loadStation(), 30000);
 
 // ---------- shell ----------
@@ -976,6 +1040,7 @@ $('#gateTok').onkeydown = (e) => e.key === 'Enter' && tryLogin($('#gateTok').val
 addEventListener('resize', () => S && view === 'stats' && drawChart());
 if (location.hash === '#queue') setView('queue');
 if (location.hash === '#station') setView('station');
+setSS(SS);
 if (TOKEN) load(); else logout();
 setInterval(() => TOKEN && !runPoll && document.visibilityState === 'visible' && load(), 5 * 60000);
 setInterval(async () => {
