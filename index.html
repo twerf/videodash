@@ -390,7 +390,7 @@ async function load() {
 function snapAt(t) { let best = null; for (const s of S.history) if (s.t <= t) best = s; return best; }
 function snap24() { const last = S.history[S.history.length - 1]; const s = snapAt(Date.now() - 24 * 3600e3) || S.history[0]; return s && last && s.t !== last.t ? s : null; }
 function gain(v) { const s = snap24(); return s && s.vid[v.id] != null ? (v.views || 0) - s.vid[v.id] : null; }
-const cleanTitle = (t) => String(t || '').replace(/(^|\s)#[^\s#]+/g, '').replace(/\.\.\.$|…$/, '').trim();
+const cleanTitle = (t) => String(t || '').replace(/#[^\s#]+/g, ' ').replace(/\s+/g, ' ').replace(/\.\.\.$|…$/, '').trim();
 const eng = (v) => v.views ? ((v.likes || 0) + (v.comments || 0) + (v.shares || 0) + (v.saves || 0)) / v.views * 100 : null;
 const sum = (arr, k) => arr.reduce((s, v) => s + (v[k] || 0), 0);
 
