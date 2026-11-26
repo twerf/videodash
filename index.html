@@ -475,7 +475,8 @@ $('#sort').onclick = (e) => { const b = e.target.closest('[data-s]'); if (!b) re
 $('#range').onclick = (e) => { const b = e.target.closest('[data-r]'); if (!b) return; RANGE = +b.dataset.r; $$('#range button').forEach((x) => x.classList.toggle('on', x === b)); drawChart(); };
 
 function drawChart() {
-  const c = $('#chart'), dpr = devicePixelRatio || 1, w = c.clientWidth, h = +c.getAttribute('height');
+  const c = $('#chart'), dpr = devicePixelRatio || 1, w = c.clientWidth, h = +(c.dataset.h || (c.dataset.h = c.getAttribute('height')));
+  if (!w) return;
   c.width = w * dpr; c.height = h * dpr; c.style.height = h + 'px';
   const x = c.getContext('2d'); x.scale(dpr, dpr); x.font = '11px "Geist Mono", monospace';
   const sel = ids(), from = RANGE ? Date.now() - RANGE * 864e5 : 0;
