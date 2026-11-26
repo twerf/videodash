@@ -265,12 +265,27 @@ textarea{min-height:96px;resize:vertical}
 .logl{font-size:12.5px;display:flex;gap:8px;padding:6px 12px;border-top:1px solid var(--line)}.logl:first-child{border-top:0}.logl .k{min-width:70px;font-weight:500}
 .ms{display:flex;gap:8px;align-items:center;padding:8px 12px;border-top:1px solid var(--line);font-size:13px}.ms:first-child{border-top:0}.ms .n{width:34px;color:var(--tx3);font-size:12px}
 @media (max-width:720px){.dial{grid-template-columns:1fr 1fr}}
+/* city (paper trading bots) */
+.cty{border:1px solid var(--line);border-radius:10px;background:var(--s1);overflow:hidden}
+.cty svg{display:block;width:100%;height:auto}
+.cty .tw{cursor:pointer}.cty .tw:hover .body{stroke:var(--tx2)}
+.cty .body{fill:var(--s2);stroke:var(--line2);stroke-width:1.5}
+.cty .win{fill:var(--line2)}.cty .win.lit{fill:#e2b93b55}
+.cty .lbl{fill:var(--tx);font:600 12px Geist,sans-serif;text-anchor:middle}.cty .sub{fill:var(--tx3);font:500 11px 'Geist Mono',monospace;text-anchor:middle}
+.cty .beam{animation:bm 1.2s ease-in-out infinite alternate}@keyframes bm{from{opacity:.35}to{opacity:.9}}
+.cty .chg{animation:cg 1.6s ease-in-out infinite alternate}@keyframes cg{from{opacity:.4}to{opacity:1}}
+.tick3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+.tick3>div{border:1px solid var(--line);border-radius:10px;background:var(--s1);padding:10px 12px}
+.tick3 b{font-weight:600}.tick3 svg{width:100%;height:34px;display:block;margin-top:4px}
+.ctlog{font-size:12.5px;display:grid;grid-template-columns:52px 90px 1fr auto;gap:8px;padding:7px 12px;border-top:1px solid var(--line);align-items:baseline}.ctlog:first-child{border-top:0}
+.bar2{height:6px;border-radius:3px;background:var(--line);overflow:hidden;margin-top:6px}.bar2 i{display:block;height:100%}
+@media (max-width:720px){.tick3{grid-template-columns:1fr 1fr 1fr}.ctlog{grid-template-columns:44px 74px 1fr auto}}
 </style>
 </head>
 <body>
 <div class="top"><div class="topin">
   <div class="brand">VideoDash</div>
-  <div class="tabs" id="tabs"><button data-v="stats" class="on">Stats</button><button data-v="queue">Queue</button><button data-v="station">Station</button></div>
+  <div class="tabs" id="tabs"><button data-v="stats" class="on">Stats</button><button data-v="queue">Queue</button><button data-v="station">Station</button><button data-v="city">City</button></div>
   <div class="sp"></div>
   <span class="upd" id="upd"></span>
   <button class="ibtn" id="refreshBtn" title="Refresh stats"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 3v6h-6"/></svg></button>
@@ -325,6 +340,17 @@ textarea{min-height:96px;resize:vertical}
     <div class="sec" id="stOrdSec"><div class="sech"><h2>Sent from phone</h2></div><div class="tbl" id="stOrders"></div></div>
   </section>
 
+  <section id="v-city" class="hidden">
+    <div class="stline"><span class="dot" id="ctDot"></span><span id="ctLine">Loading city...</span></div>
+    <div class="kpis" id="ctKpis"></div>
+    <div class="sec"><div class="cty" id="ctCity"></div><div class="dim" style="font-size:12px;margin-top:6px">Tap a tower. Top light = what the bot is leaning toward (green up, red down), brighter = closer to firing. Beam = it has a bet open.</div></div>
+    <div class="tick3" id="ctTick"></div>
+    <div class="sec"><div class="chart"><div class="charth"><span class="mut" style="font-size:13px">Balance</span><span class="num" id="ctNow" style="font-size:13px"></span></div><div id="ctEq"></div></div></div>
+    <div class="sec"><div class="sech"><h2>Activity</h2><span class="dim" style="font-size:12px">times in ET</span></div><div class="tbl" id="ctLog"></div></div>
+    <p class="dim" style="font-size:12.5px;margin-top:18px">Practice money only. Prices are real (1-minute bars, US market hours) and the bots run on the laptop inside Agent Studio, so they only trade while it's on. "Up bet" works like a call and "down bet" like a put, but these are fractional ETF positions with no leverage. Real options cost more than $20 per contract.</p>
+    <div class="acts"><button class="btn danger" id="ctReset">Reset to $20</button></div>
+  </section>
+
   <section id="v-queue" class="hidden">
     <div class="qbar"><div class="chips" id="qChips" style="flex:1;margin-right:0"></div><button class="btn pri" id="newBtn">+ New</button></div>
     <div id="qList"></div>
@@ -335,6 +361,7 @@ textarea{min-height:96px;resize:vertical}
   <button data-v="stats" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Stats</button>
   <button data-v="queue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M10 9l5 3-5 3z"/></svg>Queue</button>
   <button data-v="station"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="5" r="2.5"/><path d="M12 7.5v7M12 10l-4 3M12 10l4 3M12 14.5l-3 5.5M12 14.5l3 5.5"/></svg>Station</button>
+  <button data-v="city"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 21h18M5 21V10h4v11M10 21V4h5v17M16 21v-8h3v8"/></svg>City</button>
 </nav>
 <div class="sheet" id="stSheet"><div class="sheetin" id="stSheetIn"></div></div>
 
@@ -904,7 +931,7 @@ function renderStation() {
   if (!ST) { $('#stLine').textContent = 'No station data yet. Agent Studio on the laptop pushes it once it runs.'; return; }
   const online = Date.now() - ST.at < 12 * 60000;
   $('#stDot').classList.toggle('on', online);
-  $('#stLine').innerHTML = online ? `Laptop online · synced ${ago(ST.at) === 'now' ? 'just now' : ago(ST.at) + ' ago'}` : `Laptop offline · last seen ${ago(ST.at)} ago. Agents are paused; anything you send runs when it's back.`;
+  $('#stLine').innerHTML = online ? `Engine online · synced ${ago(ST.at) === 'now' ? 'just now' : ago(ST.at) + ' ago'}` : `Engine offline (laptop off) · last seen ${ago(ST.at)} ago. Agents are paused; anything you send runs when it's back.`;
   const ts = ST.tasks || [], n = (s) => ts.filter((t) => t.status === s).length;
   const spent = ST.agents.reduce((a, x) => a + (x.spendToday || 0), 0);
   $('#stKpis').innerHTML = [['Crew', ST.agents.filter((a) => !a.overseer).length], ['Working', n('running')], ['Needs you', n('review') + n('blocked')], ['Usage today (API value)', '$' + spent.toFixed(spent >= 10 ? 0 : 2)]]
@@ -912,7 +939,7 @@ function renderStation() {
   const boss = ST.agents.find((a) => a.overseer);
   $('#stBoss').innerHTML = boss ? `<div class="boss">${stick(boss.status, true)}<div style="flex:1;min-width:0"><div><span class="nm">${esc(boss.name)}</span> <span class="dim" style="font-size:12px">overseer · ${esc(boss.model)}</span></div>
     <div class="mut" style="font-size:13px">${n('running')} working · ${n('review')} to review · ${n('blocked')} stuck · ${ts.filter((t) => ['ready', 'todo'].includes(t.status)).length} queued</div>
-    <div class="acts"><button class="btn pri" data-stjob="default">Give a job</button></div></div></div>` : '';
+    <div class="acts"><button class="btn pri" data-stjob="default">Give a job</button><button class="btn" data-strecruit>Recruit agent</button></div></div></div>` : '';
   const need = ts.filter((t) => t.status === 'review' || t.status === 'blocked');
   $('#stNeedSec').classList.toggle('hidden', !need.length);
   $('#stNeed').innerHTML = need.map((t) => `<div class="tr trow" data-sttask="${t.id}"><div style="min-width:0"><div class="t">${esc(t.title)}</div><div class="sub">${esc(t.agent)}${pendingFor(t.id) ? ' · answer sent, waiting for laptop' : ''}</div></div><span class="tag ${t.status}">${t.status === 'review' ? 'review' : 'stuck'}</span></div>`).join('');
@@ -963,7 +990,20 @@ function stTaskSheet(id) {
     try { await sendOrder({ type, taskId: id, text: note }); closeSheet('stSheet'); toast('Sent'); } catch (e) { $('#stErr').textContent = e.message; } };
   if ($('#stOk')) $('#stOk').onclick = go('approve'); if ($('#stBack')) $('#stBack').onclick = go('changes', true); if ($('#stAns')) $('#stAns').onclick = go('unblock', true);
 }
+function stRecruit() {
+  const cls = ST.classes || {};
+  $('#stSheetIn').innerHTML = `<div class="sheeth"><h3>Recruit an agent</h3><button class="ibtn" data-close="stSheet">&times;</button></div>
+    <div class="field"><div class="fl">Name</div><input type="text" id="rcName" maxlength="30" placeholder="Nova"></div>
+    <div class="field"><div class="fl">Class</div><select id="rcCls">${Object.entries(cls).map(([k, l]) => `<option value="${k}">${esc(l)}</option>`).join('')}</select></div>
+    <div class="field"><div class="fl">Room</div><select id="rcRoom">${ST.rooms.map((r) => `<option value="${r.id}">${esc(r.name)}</option>`).join('')}</select></div>
+    <div class="field"><div class="fl">Their job / personality</div><textarea id="rcTxt" rows="4" placeholder="What should they own?"></textarea></div>
+    <div class="err" id="rcErr"></div><div class="acts"><button class="btn" data-close="stSheet">Cancel</button><button class="btn pri" id="rcGo">Recruit</button></div>`;
+  $('#stSheet').classList.add('on');
+  $('#rcGo').onclick = async () => { const name = $('#rcName').value.trim(); if (!name) { $('#rcErr').textContent = 'Give them a name.'; return; }
+    await sendOrder({ type: 'recruit', name, cls: $('#rcCls').value, room: $('#rcRoom').value, text: $('#rcTxt').value.trim() }); closeSheet('stSheet'); toast('Recruiting. They show up in a minute.'); };
+}
 document.addEventListener('click', (e) => {
+  if (e.target.closest('[data-strecruit]')) return stRecruit();
   const j = e.target.closest('[data-stjob]'); if (j) return stJobSheet(j.dataset.stjob);
   const t = e.target.closest('[data-sttask]'); if (t) return stTaskSheet(t.dataset.sttask);
 });
@@ -1015,13 +1055,81 @@ document.addEventListener('click', async (e) => {
 
 setInterval(() => TOKEN && view === 'station' && document.visibilityState === 'visible' && loadStation(), 30000);
 
+// ---------- city (paper-trading bots, synced from the laptop) ----------
+let CT = null;
+const cusd = (n, d = 2) => (n < 0 ? '−$' : '$') + Math.abs(n).toFixed(d);
+const cpct = (n) => (n > 0 ? '+' : n < 0 ? '−' : '') + Math.abs(n).toFixed(2) + '%';
+const cls = (n) => n > 0 ? 'up' : n < 0 ? 'down' : 'mut';
+const etTime = (t) => new Date(t).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', timeZone: 'America/New_York' });
+async function loadCity() {
+  try { CT = await getJson('city.json', null); renderCity(); }
+  catch (e) { $('#ctLine').textContent = 'Could not load city: ' + e.message; }
+}
+function spark(arr, w = 200, h = 34, col) {
+  if (!arr || arr.length < 2) return '';
+  const mn = Math.min(...arr), mx = Math.max(...arr), sp = mx - mn || 1;
+  const pts = arr.map((v, i) => `${(i / (arr.length - 1) * w).toFixed(1)},${(h - 2 - (v - mn) / sp * (h - 4)).toFixed(1)}`).join(' ');
+  return `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none"><polyline points="${pts}" fill="none" stroke="${col}" stroke-width="1.5" vector-effect="non-scaling-stroke"/></svg>`;
+}
+function renderCity() {
+  if (!CT) { $('#ctLine').textContent = 'No city data yet. Agent Studio on the laptop pushes it once it runs.'; return; }
+  const online = Date.now() - CT.at < (CT.open ? 5 : 40) * 60000;
+  $('#ctDot').classList.toggle('on', online && CT.open);
+  $('#ctLine').innerHTML = !online ? `Laptop offline · last seen ${ago(CT.at)} ago. Bots only trade while Agent Studio runs.`
+    : CT.open ? `Market open · bots trading · closes ${etTime(CT.closeAt)} ET · synced ${ago(CT.at) === 'now' ? 'just now' : ago(CT.at) + ' ago'}`
+    : `Market closed · bots wait for the next open (9:30 ET)${CT.err ? ' · ' + esc(CT.err) : ''}`;
+  const B = CT.bots, day = B.reduce((a, b) => a + b.equity - b.dayStart, 0), all = CT.total - CT.startCash;
+  const n = B.reduce((a, b) => a + b.n, 0), w = B.reduce((a, b) => a + b.wins, 0);
+  $('#ctKpis').innerHTML = [['Balance (fake)', cusd(CT.total)], ['Today', `<span class="${cls(day)}">${cusd(day, 3)}</span>`], ['All time', `<span class="${cls(all)}">${cpct(all / CT.startCash * 100)}</span>`], ['Win rate', n ? Math.round(w / n * 100) + '% <span class="dim" style="font-size:13px">of ' + n + '</span>' : '–']]
+    .map(([l, v]) => `<div class="kpi"><div class="l">${l}</div><div class="v num">${v}</div></div>`).join('');
+  // the city
+  const sm = innerWidth < 600, W = sm ? 380 : 700, H = sm ? 290 : 300, G = sm ? 236 : 250, tw = sm ? 58 : 80, gap = (W - B.length * tw) / (B.length + 1), base = CT.startCash / B.length;
+  const towers = B.map((b, i) => {
+    const x = gap + i * (tw + gap), ht = Math.max(60, Math.min(200, 130 + (b.equity - base) / base * 2000)), y = G - ht;
+    const col = b.sig.dir === 'up' ? 'var(--up)' : b.sig.dir === 'down' ? 'var(--down)' : 'var(--tx3)';
+    const pc = b.pos ? (b.pos.side === 'up' ? 'var(--up)' : 'var(--down)') : col;
+    let wins = ''; const lit = Math.round((b.sig.charge || 0) * 12);
+    const cw = (tw - 24) / 3 + 0; for (let r = 0, k = 0; y + 14 + r * 16 < G - 8; r++) for (let c = 0; c < 3; c++, k++) wins += `<rect class="win ${k < lit ? 'lit' : ''}" x="${x + 8 + c * (tw - 16) / 3 + ((tw - 16) / 3 - 12) / 2}" y="${y + 14 + r * 16}" width="12" height="8" rx="1"/>`;
+    const beam = b.pos ? `<rect class="beam" x="${x + tw / 2 - 5}" y="0" width="10" height="${y - 6}" fill="${pc}" opacity=".6"/>` : '';
+    const light = `<circle class="${b.sig.charge > 0.6 ? 'chg' : ''}" cx="${x + tw / 2}" cy="${y - 10}" r="${5 + (b.sig.charge || 0) * 4}" fill="${pc}" opacity="${b.pos ? 1 : 0.25 + (b.sig.charge || 0) * 0.75}"/>`;
+    const dd = b.equity - b.dayStart, lock = b.lock ? `<text class="sub" x="${x + tw / 2}" y="${y + ht / 2}" style="fill:#e2b93b">${b.lock === 'profit lock' ? 'LOCKED' : 'STOPPED'}</text>` : '';
+    return `<g class="tw" data-ctbot="${b.id}">${beam}<line x1="${x + tw / 2}" y1="${y}" x2="${x + tw / 2}" y2="${y - 6}" stroke="var(--line2)" stroke-width="2"/>${light}<rect class="body" x="${x}" y="${y}" width="${tw}" height="${ht}" rx="3"/>${wins}${lock}
+      <text class="lbl" x="${x + tw / 2}" y="${G + 18}" ${sm ? 'style="font-size:11px"' : ''}>${esc(b.name)}</text><text class="sub" x="${x + tw / 2}" y="${G + 34}" ${sm ? 'style="font-size:10px"' : ''}><tspan>${cusd(b.equity, 3)}</tspan>${sm ? `</text><text class="sub" x="${x + tw / 2}" y="${G + 48}" style="font-size:10px">` : ' '}<tspan style="fill:${dd > 0 ? 'var(--up)' : dd < 0 ? 'var(--down)' : 'var(--tx3)'}">${dd >= 0 ? '+' : '−'}${Math.abs(dd).toFixed(3)}</tspan></text></g>`;
+  }).join('');
+  $('#ctCity').innerHTML = `<svg viewBox="0 0 ${W} ${H}"><line x1="0" y1="${G}" x2="${W}" y2="${G}" stroke="var(--line2)" stroke-width="2"/>${towers}</svg>`;
+  $('#ctTick').innerHTML = Object.entries(CT.quotes || {}).map(([s, q]) => { const ch = (q.px - q.prev) / q.prev * 100;
+    return `<div><div style="display:flex;justify-content:space-between;gap:6px"><b>${s}</b><span class="num ${cls(ch)}" style="font-size:12px">${cpct(ch)}</span></div><div class="num" style="font-size:13px">${q.px.toFixed(2)}</div>${spark(q.spark, 200, 34, ch >= 0 ? '#4cc38a' : '#e5484d')}</div>`; }).join('');
+  const eq = (CT.equity || []).map((e) => e.v);
+  $('#ctNow').innerHTML = cusd(CT.total, 3);
+  $('#ctEq').innerHTML = eq.length > 1 ? `<div style="height:110px">${spark(eq, 700, 110, CT.total >= CT.startCash ? '#4cc38a' : '#e5484d').replace('<svg', '<svg style="width:100%;height:110px"')}</div>` : '<div class="dim" style="font-size:13px;padding:20px 0">The line starts once the bots trade.</div>';
+  const nm = Object.fromEntries(B.map((b) => [b.id, b.name]));
+  $('#ctLog').innerHTML = (CT.log || []).slice(0, 40).map((l) => `<div class="ctlog"><span class="dim num">${etTime(l.t * 1000)}</span><span>${esc(nm[l.bot] || l.bot)}</span><span class="${l.kind === 'win' ? 'up' : l.kind === 'loss' ? 'down' : 'mut'}">${esc(l.kind)}${l.why ? ' · ' + esc(l.why) : ''}</span><span class="num ${cls(l.pnl || 0)}">${l.pnl != null ? cusd(l.pnl, 4) : l.px ? '@ ' + l.px.toFixed(2) : ''}</span></div>`).join('') || '<div class="ctlog dim" style="grid-template-columns:1fr">No trades yet. They start at the next market open.</div>';
+}
+function ctBotSheet(id) {
+  const b = CT.bots.find((x) => x.id === id); if (!b) return;
+  const p = b.pos, ch = Math.round((b.sig.charge || 0) * 100);
+  $('#stSheetIn').innerHTML = `<div class="sheeth"><h3>${esc(b.name)} <span class="dim" style="font-size:13px;font-weight:400">${b.sym}</span></h3><button class="ibtn" data-close="stSheet">&times;</button></div>
+    <div class="mut" style="font-size:13px">${esc(CT.strats[b.strat] || '')}</div>
+    <div class="kpis" style="grid-template-columns:repeat(3,1fr)"><div class="kpi"><div class="l">Balance</div><div class="v num" style="font-size:18px">${cusd(b.equity, 3)}</div></div><div class="kpi"><div class="l">Today</div><div class="v num ${cls(b.equity - b.dayStart)}" style="font-size:18px">${cusd(b.equity - b.dayStart, 3)}</div></div><div class="kpi"><div class="l">Wins</div><div class="v num" style="font-size:18px">${b.wins}/${b.n}</div></div></div>
+    <div class="fl" style="margin-top:14px">Signal</div><div style="font-size:13px">${b.sig.dir ? `Leaning <b class="${b.sig.dir === 'up' ? 'up' : 'down'}">${b.sig.dir}</b> · ${ch}% charged` : 'Waiting for the market'}${b.sig.why ? ` <span class="dim">· ${esc(b.sig.why)}</span>` : ''}</div>
+    <div class="bar2"><i style="width:${ch}%;background:${b.sig.dir === 'down' ? 'var(--down)' : 'var(--up)'}"></i></div>
+    ${b.lock ? `<p style="font-size:13px;color:#e2b93b">${b.lock === 'profit lock' ? 'Hit the profit lock (+' + CT.lock.up * 100 + '% today), done until tomorrow.' : 'Hit the daily loss limit (' + CT.lock.down * 100 + '%), done until tomorrow.'}</p>` : ''}
+    <div class="fl" style="margin-top:14px">Open bet</div>${p ? `<div class="sumbox" style="white-space:normal"><b class="${p.side === 'up' ? 'up' : 'down'}">${p.side} bet</b> from ${p.entry.toFixed(2)} · now ${p.last.toFixed(2)} · <span class="${cls(p.pnl)}">${cusd(p.pnl, 4)}</span><br><span class="dim">target ${p.target.toFixed(2)} · stop ${p.stop.toFixed(2)} · ${esc(p.why)} · ${etTime(p.at * 1000)}</span></div>` : '<div class="dim" style="font-size:13px">None</div>'}
+    <div class="fl" style="margin-top:14px">Recent trades</div><div class="tbl">${b.trades.map((t) => `<div class="ctlog" style="grid-template-columns:52px 44px 1fr auto"><span class="dim num">${etTime(t.out * 1000)}</span><span class="${t.side === 'up' ? 'up' : 'down'}">${t.side}</span><span class="mut">${t.entry.toFixed(2)} → ${t.exit.toFixed(2)} · ${esc(t.why)}</span><span class="num ${cls(t.pnl)}">${cpct(t.pct)}</span></div>`).join('') || '<div class="ctlog dim" style="grid-template-columns:1fr">No trades yet.</div>'}</div>`;
+  $('#stSheet').classList.add('on');
+}
+document.addEventListener('click', (e) => { const t = e.target.closest('[data-ctbot]'); if (t) ctBotSheet(t.dataset.ctbot); });
+$('#ctReset').onclick = async () => { if (!confirm('Wipe all practice trades and start again at $20?')) return; await sendOrder({ type: 'cityreset' }); toast('Sent. Resets within a minute if the laptop is on.'); };
+setInterval(() => TOKEN && view === 'city' && document.visibilityState === 'visible' && loadCity(), 20000);
+addEventListener('resize', () => CT && view === 'city' && renderCity());
+
 // ---------- shell ----------
 function closeSheet(id) { $('#' + id).classList.remove('on'); if (id === 'qSheet') openId = null; }
 document.addEventListener('click', (e) => { const c = e.target.closest('[data-close]'); if (c) closeSheet(c.dataset.close); else if (e.target.classList.contains('sheet')) closeSheet(e.target.id); });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') $$('.sheet.on').forEach((s) => closeSheet(s.id)); });
 function setView(v) {
   view = v; $$('#tabs button, #bnav button').forEach((b) => b.classList.toggle('on', b.dataset.v === v));
-  $('#v-stats').classList.toggle('hidden', v !== 'stats'); $('#v-queue').classList.toggle('hidden', v !== 'queue'); $('#v-station').classList.toggle('hidden', v !== 'station'); if (v === 'station' && TOKEN) loadStation();
+  $('#v-stats').classList.toggle('hidden', v !== 'stats'); $('#v-queue').classList.toggle('hidden', v !== 'queue'); $('#v-station').classList.toggle('hidden', v !== 'station'); $('#v-city').classList.toggle('hidden', v !== 'city'); if (v === 'station' && TOKEN) loadStation(); if (v === 'city' && TOKEN) loadCity();
   history.replaceState(null, '', '#' + v); if (v === 'stats' && S) drawChart(); scrollTo({ top: 0 });
 }
 $$('#tabs button, #bnav button').forEach((b) => b.onclick = () => setView(b.dataset.v));
@@ -1043,6 +1151,7 @@ $('#gateTok').onkeydown = (e) => e.key === 'Enter' && tryLogin($('#gateTok').val
 addEventListener('resize', () => S && view === 'stats' && drawChart());
 if (location.hash === '#queue') setView('queue');
 if (location.hash === '#station') setView('station');
+if (location.hash === '#city') setView('city');
 setSS(SS);
 if (TOKEN) load(); else logout();
 setInterval(() => TOKEN && !runPoll && document.visibilityState === 'visible' && load(), 5 * 60000);
