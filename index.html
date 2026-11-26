@@ -1063,7 +1063,9 @@ const cls = (n) => n > 0 ? 'up' : n < 0 ? 'down' : 'mut';
 const etTime = (t) => new Date(t).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', timeZone: 'America/New_York' });
 const CITY = 'https://api.github.com/repos/twerf/city-bots/contents';
 async function cityFetch(path, opt = {}) {
-  const r = await fetch(`${CITY}/${path}`, { ...opt, headers: { ...(TOKEN ? { Authorization: `Bearer ${TOKEN}` } : {}), Accept: 'application/vnd.github.raw+json', ...(opt.headers || {}) } });
+  const go = (auth) => fetch(`${CITY}/${path}`, { ...opt, headers: { ...(auth ? { Authorization: `Bearer ${TOKEN}` } : {}), Accept: 'application/vnd.github.raw+json', ...(opt.headers || {}) } });
+  let r = await go(!!TOKEN);
+  if (r.status === 401 && !opt.method) r = await go(false); // public repo: reads work without a token
   if (!r.ok) { const e = new Error('GitHub ' + r.status); e.status = r.status; throw e; }
   return r.json();
 }
