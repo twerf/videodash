@@ -919,7 +919,7 @@ function renderStation() {
   const crew = ST.agents.filter((a) => !a.overseer);
   $('#stRooms').innerHTML = ST.rooms.map((r) => { const ag = crew.filter((a) => a.room === r.id); return `<div class="room"><div class="roomh"><b>${esc(r.name)}</b><span class="dim" style="font-size:12px">${ag.length} agent${ag.length === 1 ? '' : 's'}</span></div>
     <div class="gear">${r.gear.map((g) => `<span>${esc(g)}</span>`).join('')}</div>
-    <div class="floor">${ag.map((a) => { const j = a.jobs.find((x) => x.status === 'running') || a.jobs[0]; return `<div class="ag" data-stjob="${a.id}">${stick(a.status)}<b>${esc(a.name)}</b><span class="c">${esc(a.cls)} · ${esc(a.model)} · Lv ${a.level}</span><span class="s">${STL[a.status] || a.status}</span>${j && a.status !== 'idle' ? `<span class="j">${esc(j.title)}</span>` : ''}</div>`; }).join('') || '<div class="dim" style="font-size:13px;padding:10px">empty room</div>'}</div></div>`; }).join('');
+    <div class="floor">${ag.map((a) => { const j = a.jobs.find((x) => x.status === 'running') || a.jobs[0]; return `<div class="ag" data-stjob="${a.id}">${stick(a.status)}<b>${esc(a.name)}</b><span class="c">${esc(a.cls)} · ${esc(a.model)} · Lv ${a.level}</span><span class="s">${STL[a.status] || a.status}</span>${a.doing ? `<span class="j" style="color:var(--up);font-family:var(--mono)">${esc(a.doing)}</span>` : ''}${j && a.status !== 'idle' ? `<span class="j">${esc(j.title)}</span>` : ''}</div>`; }).join('') || '<div class="dim" style="font-size:13px;padding:10px">empty room</div>'}</div></div>`; }).join('');
   const jobs = ts.filter((t) => !['review', 'blocked'].includes(t.status));
   $('#stJobs').innerHTML = jobs.map((t) => `<div class="tr trow" data-sttask="${t.id}"><div style="min-width:0"><div class="t">${esc(t.title)}</div><div class="sub">${esc(t.agent)}</div></div><span class="tag ${t.status}">${t.status === 'running' ? 'working' : t.status === 'ready' ? 'up next' : t.status}</span></div>`).join('') || '<div class="tr dim">Nothing running or queued.</div>';
   const ord = STO.filter((o) => o.state !== 'done' || Date.now() - (o.doneAt || 0) < 3600000).slice(-8).reverse();
@@ -946,6 +946,7 @@ function stJobSheet(agent) {
     try { await sendOrder({ type: 'job', agent: $('#stAg').value, text }); closeSheet('stSheet'); toast(Date.now() - ST.at < 12 * 60000 ? 'Sent. Starts within a minute.' : 'Saved. Runs when the laptop is back on.'); }
     catch (e) { $('#stErr').textContent = e.message; $('#stSend').disabled = false; } };
 }
+function briefOpts(s) { return String(s || '').split(/\n/).map((l) => l.trim()).filter((l) => /^(\(?[1-4a-dA-D][).:]|[-*] )\s*\S/.test(l)).map((l) => l.replace(/^(\(?[1-4a-dA-D][).:]|[-*])\s*/, '')).slice(0, 4); }
 function stTaskSheet(id) {
   const t = ST.tasks.find((x) => x.id === id); if (!t) return;
   const can = t.status === 'review' || t.status === 'blocked';
@@ -954,7 +955,9 @@ function stTaskSheet(id) {
     ${t.summary ? `<div class="sumbox">${esc(t.summary)}</div>` : '<p class="dim" style="font-size:13px">No summary yet. Screenshots and full logs are in Agent Studio on the laptop.</p>'}
     ${can ? `<div class="field"><div class="fl">${t.status === 'blocked' ? 'Your answer' : 'Note / what to change'}</div><textarea id="stNote" rows="3"></textarea></div>
     <div class="err" id="stErr"></div>
+    ${t.status === 'blocked' ? briefOpts(t.summary).map((o) => `<button class="btn" style="width:100%;margin-top:6px;text-align:left" data-brief="${esc(o)}">${esc(o)}</button>`).join('') : ''}
     <div class="acts">${t.status === 'review' ? '<button class="btn" id="stBack">Send back</button><button class="btn pri" id="stOk">Approve</button>' : '<button class="btn pri" id="stAns">Answer + restart</button>'}</div>` : ''}`;
+  $$('[data-brief]', $('#stSheetIn')).forEach((b) => b.onclick = () => { $('#stNote').value = b.dataset.brief; $('#stAns').click(); });
   $('#stSheet').classList.add('on');
   const go = (type, needNote) => async () => { const note = $('#stNote').value.trim(); if (needNote && !note) { $('#stErr').textContent = 'Say what to change.'; return; }
     try { await sendOrder({ type, taskId: id, text: note }); closeSheet('stSheet'); toast('Sent'); } catch (e) { $('#stErr').textContent = e.message; } };
