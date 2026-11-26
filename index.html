@@ -122,7 +122,13 @@ canvas{display:block;width:100%}
 .btn.sm{padding:5px 10px;font-size:13px}
 .btn:disabled{opacity:.5}
 .qgroup{margin-top:22px}
-.qrow{grid-template-columns:10px minmax(0,1fr) auto 16px;cursor:pointer}
+.qrow{grid-template-columns:48px minmax(0,1fr) auto 16px;cursor:pointer}
+.cov{position:relative;width:48px;height:64px;border-radius:6px;overflow:hidden;background:var(--s2)}
+.cov img{width:100%;height:100%;object-fit:cover;display:block}
+.cov .dot{position:absolute;top:4px;left:4px;box-shadow:0 0 0 2px var(--s1)}
+.vload.hasimg{height:auto;padding:0;overflow:hidden;position:relative;border-style:solid}
+.vload.hasimg img{width:100%;max-height:46vh;object-fit:contain;display:block;background:#000}
+.vload .play{position:absolute;inset:auto 0 0 0;padding:10px;background:linear-gradient(transparent,rgba(0,0,0,.75));color:#fff;font-size:13px;text-align:center}
 .qrow:hover{background:var(--s2)}
 .dot{width:8px;height:8px;border-radius:50%;background:var(--tx3)}
 .dot.ready{background:var(--up)} .dot.draft{background:var(--tx3)} .dot.posted{background:#3a3d44}
@@ -631,7 +637,7 @@ function renderQueue() {
     if (!items.length) return '';
     return `<div class="qgroup"><div class="sech"><h2>${label}</h2><span class="dim num">${items.length}</span></div><div class="tbl">` + items.map((q) => {
       const done = Object.keys(q.postedTo || {}).length, tot = (q.accounts || []).length;
-      return `<div class="tr qrow" data-id="${q.id}"><span class="dot ${q.status}"></span>
+      return `<div class="tr qrow" data-id="${q.id}"><div class="cov">${q.thumb ? `<img src="${q.thumb}" alt="">` : ''}<span class="dot ${q.status}"></span></div>
         <div style="min-width:0"><div class="qt">${esc(capOf(q) || (q.description || '').split('\n')[0]) || `<span class="dim">${q.autofill === 'pending' ? 'New video' : 'Untitled'}</span>`}</div>
         <div class="qm">${q.autofill === 'pending' ? '<span class="pending">Writing caption… · </span>' : ''}${(q.autofill || '').startsWith('failed') ? '<span class="down">Caption failed · </span>' : ''}${(q.accounts || []).map((id) => '@' + esc(acct(id).handle)).join(', ') || 'no accounts picked'}${tot && st !== 'posted' && done ? ` · ${done}/${tot} posted` : ''}${q.file ? '' : ' · no video'}</div></div>
         <span class="qwhen">${q.when ? whenFmt(q.when) : ''}</span><span class="chev">›</span></div>`;
@@ -648,7 +654,7 @@ function openItem(id) {
   const desc = descOf(q);
   $('#qSheetIn').innerHTML = `
     <div class="sheeth"><span class="dot ${q.status}"></span><h3>${esc(capOf(q) || (q.description || '').split('\n')[0]) || 'Untitled'}</h3><button class="ibtn" data-close="qSheet">&times;</button></div>
-    ${q.file ? `<div id="vbox"><div class="vload" data-act="load"><span>Tap to load video</span><span class="dim" style="font-size:12px">${(q.file.size / 1e6).toFixed(1)} MB</span></div></div>` : '<div class="dim" style="font-size:13px">No video attached</div>'}
+    ${q.file ? `<div id="vbox">${q.thumb ? `<div class="vload hasimg" data-act="load"><img src="${q.thumb}" alt=""><div class="play">Tap to play · ${(q.file.size / 1e6).toFixed(1)} MB</div></div>` : `<div class="vload" data-act="load"><span>Tap to load video</span><span class="dim" style="font-size:12px">${(q.file.size / 1e6).toFixed(1)} MB</span></div>`}</div>` : '<div class="dim" style="font-size:13px">No video attached</div>'}
     ${q.autofill === 'pending' ? '<div class="note" style="margin-top:12px">Writing the caption and hashtags… this updates by itself in a few minutes.</div>' : ''}
     ${(q.autofill || '').startsWith('failed') ? `<div class="err">Auto caption failed: ${esc(q.autofill.slice(8))}</div>` : ''}
     <div class="field"><div class="fl">Caption <span class="dim">(on-screen text)</span><span class="sp"></span><button class="copyb" data-copy="cap">Copy</button></div><div class="box">${esc(capOf(q)) || '<span class="dim">empty</span>'}</div></div>
@@ -726,6 +732,26 @@ function counts() {
   $('#cCap').textContent = c ? c + '' : ''; $('#cDesc').textContent = d + '/2200'; $('#cDesc').className = 'cnt' + (d > 2200 ? ' over' : '');
 }
 ['#fCap', '#fDesc'].forEach((s) => $(s).addEventListener('input', counts));
+function makeThumb(file) {
+  return new Promise((resolve) => {
+    const v = document.createElement('video'), url = URL.createObjectURL(file); let done = false, seeking = false;
+    const finish = (x) => { if (done) return; done = true; try { v.pause(); } catch {} v.remove(); URL.revokeObjectURL(url); resolve(x); };
+    const grab = () => { try { const w = 180, h = Math.round(w * v.videoHeight / v.videoWidth) || 320, c = document.createElement('canvas'); c.width = w; c.height = h;
+      c.getContext('2d').drawImage(v, 0, 0, w, h); const d = c.toDataURL('image/jpeg', 0.7); finish(d.length > 1500 ? d : null); } catch { finish(null); } };
+    const seek = () => { if (seeking) return; seeking = true; try { v.currentTime = Math.min(1, (v.duration || 2) / 2); } catch { finish(null); } };
+    v.muted = true; v.defaultMuted = true; v.playsInline = true; v.preload = 'auto';
+    v.setAttribute('playsinline', ''); v.setAttribute('muted', ''); v.setAttribute('webkit-playsinline', '');
+    v.style.cssText = 'position:fixed;left:0;top:0;width:2px;height:2px;opacity:0;pointer-events:none';
+    v.onloadeddata = seek; v.onloadedmetadata = () => { if (v.readyState >= 2) seek(); };
+    v.onseeked = () => setTimeout(grab, 60);
+    v.onerror = () => finish(null);
+    document.body.appendChild(v); v.src = url; v.load();
+    setTimeout(() => { if (!seeking) v.play().then(() => { v.pause(); seek(); }).catch(() => {}); }, 1500);
+    setTimeout(() => finish(null), 12000);
+  });
+}
+const thumbCache = new WeakMap();
+const thumbFor = (f) => { if (!thumbCache.has(f)) thumbCache.set(f, makeThumb(f)); return thumbCache.get(f); };
 function pickFiles(list) {
   let fs = [...(list || [])].filter((f) => f.type.startsWith('video/') || /\.(mp4|mov|m4v|webm)$/i.test(f.name));
   if (!fs.length) return;
@@ -739,6 +765,7 @@ function pickFiles(list) {
   $('#filePrev').innerHTML = bulk ? `${fs.length} videos · ${(total / 1e6).toFixed(0)} MB<div class="flist">${fs.map((f, i) => `<div data-fi="${i}"><span>${esc(f.name)}</span><span class="dim">${(f.size / 1e6).toFixed(1)} MB</span></div>`).join('')}</div>` : `${esc(fs[0].name)} · ${(fs[0].size / 1e6).toFixed(1)} MB`;
   $('#dropTxt').textContent = bulk ? 'Tap to pick different videos' : 'Tap to pick a different video';
   $('#fSave').textContent = bulk ? `Add ${fs.length} videos` : 'Save';
+  fs.forEach((f, i) => thumbFor(f).then((t) => { if (!t) return; const row = $(`.flist [data-fi="${i}"]`); if (row && !row.querySelector('img')) row.insertAdjacentHTML('afterbegin', `<img src="${t}" style="width:24px;height:32px;object-fit:cover;border-radius:3px">`); }));
 }
 $('#file').onchange = (e) => { pickFiles(e.target.files); e.target.value = ''; };
 ['dragover', 'dragenter'].forEach((ev) => $('#drop').addEventListener(ev, (e) => { e.preventDefault(); $('#drop').classList.add('hov'); }));
@@ -758,6 +785,7 @@ $('#fSave').onclick = async () => {
     const item = { caption: $('#fCap').value.trim(), description: $('#fDesc').value.trim(), title: '', hashtags: '',
       accounts: $$('#fAccts .pick.on').map((p) => p.dataset.a), when: $('#fWhen').value, status: $('#fStatus').value, notes: $('#fNotes').value.trim(), file };
     if (editing) item.id = editing.id;
+    if (pendingFile) item.thumb = await thumbFor(pendingFile) || undefined;
     const blank = !item.caption || !item.description;
     if ($('#fAI').checked && file && blank && (!editing || pendingFile || editing.autofill !== 'done')) item.autofill = 'pending';
     await api('/api/queue', { method: 'POST', body: JSON.stringify(item) });
@@ -777,7 +805,7 @@ async function saveBulk(btn) {
         const pc = (doneBytes + f.size * x) / total; $('#prog i').style.width = (pc * 100).toFixed(0) + '%';
         btn.textContent = `Uploading ${i + 1}/${fs.length} · ${(pc * 100).toFixed(0)}%`; if (row) row.textContent = (x * 100).toFixed(0) + '%'; } })).file;
       doneBytes += f.size; if (row) { row.textContent = 'uploaded'; row.className = 'ok'; }
-      items.push({ ...shared, caption: '', description: '', file: up, autofill: 'pending' });
+      items.push({ ...shared, caption: '', description: '', file: up, autofill: 'pending', thumb: await thumbFor(f) || undefined });
     }
     btn.textContent = 'Saving…';
     await api('/api/queue-bulk', { method: 'POST', body: JSON.stringify(items) });
