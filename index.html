@@ -291,6 +291,7 @@ textarea{min-height:96px;resize:vertical}
 .bar2{height:6px;border-radius:3px;background:var(--line);overflow:hidden;margin-top:6px}.bar2 i{display:block;height:100%}
 @media (max-width:720px){.tks{grid-template-columns:1fr 1fr}.lgr{grid-template-columns:22px 8px 1fr 58px 52px;gap:8px}.lgr .hm{display:none}.ctlog{grid-template-columns:44px 80px 1fr auto}}
 .prods{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;margin-top:10px}.prod{display:flex;flex-direction:column;gap:3px;font-size:13px}.prod img,.prod .noimg{width:100%;aspect-ratio:1;object-fit:contain;background:#fff;border-radius:8px;border:1px solid var(--line)}.prod .noimg{display:grid;place-items:center;color:#888;font-size:12px}.prod b{font-weight:500;line-height:1.25}.prod .dim{font-size:12px}
+.chbox{max-height:55vh;overflow:auto;display:flex;flex-direction:column;gap:8px;padding:4px 0}.cm{max-width:85%;padding:8px 11px;border-radius:12px;font-size:14px;line-height:1.4}.cm.user{align-self:flex-end;background:var(--tx);color:var(--bg)}.cm.agent{align-self:flex-start;background:var(--s2);border:1px solid var(--line)}
 </style>
 </head>
 <body>
@@ -339,7 +340,7 @@ textarea{min-height:96px;resize:vertical}
 
   <section id="v-station" class="hidden">
     <div class="stline"><span class="dot" id="stDot"></span><span id="stLine">Loading station...</span></div>
-    <div class="seg stsub" id="stSub"><button data-ss="crew" class="on">Crew</button><button data-ss="lines">Lines</button><button data-ss="outbox">Outbox</button><button data-ss="night">Night shift</button><button data-ss="goals">Goals</button></div>
+    <div class="seg stsub" id="stSub"><button data-ss="crew" class="on">Crew</button><button data-ss="money">Money</button><button data-ss="lines">Lines</button><button data-ss="outbox">Outbox</button><button data-ss="night">Night shift</button><button data-ss="goals">Goals</button></div>
     <div id="stX"></div>
     <div id="stCrew">
     <div class="kpis" id="stKpis"></div>
@@ -951,14 +952,14 @@ function renderStation() {
   const boss = ST.agents.find((a) => a.overseer);
   $('#stBoss').innerHTML = boss ? `<div class="boss">${stick(boss.status, true)}<div style="flex:1;min-width:0"><div><span class="nm">${esc(boss.name)}</span> <span class="dim" style="font-size:12px">overseer · ${esc(boss.model)}</span></div>
     <div class="mut" style="font-size:13px">${n('running')} working · ${n('review')} to review · ${n('blocked')} stuck · ${ts.filter((t) => ['ready', 'todo'].includes(t.status)).length} queued</div>
-    <div class="acts"><button class="btn pri" data-stjob="default">Give a job</button><button class="btn" data-strecruit>Recruit agent</button></div></div></div>` : '';
+    <div class="acts"><button class="btn pri" data-stjob="default">Give a job</button><button class="btn" data-stchat="default">Talk</button><button class="btn" data-strecruit>Recruit agent</button></div></div></div>` : '';
   const need = ts.filter((t) => t.status === 'review' || t.status === 'blocked');
   $('#stNeedSec').classList.toggle('hidden', !need.length);
   $('#stNeed').innerHTML = need.map((t) => `<div class="tr trow" data-sttask="${t.id}"><div style="min-width:0"><div class="t">${esc(t.title)}</div><div class="sub">${esc(t.agent)}${pendingFor(t.id) ? ' · answer sent, waiting for laptop' : ''}</div></div><span class="tag ${t.status}">${t.status === 'review' ? 'review' : 'stuck'}</span></div>`).join('');
   const crew = ST.agents.filter((a) => !a.overseer);
   $('#stRooms').innerHTML = ST.rooms.map((r) => { const ag = crew.filter((a) => a.room === r.id); return `<div class="room"><div class="roomh"><b>${esc(r.name)}</b><span class="dim" style="font-size:12px">${ag.length} agent${ag.length === 1 ? '' : 's'}</span></div>
     <div class="gear">${r.gear.map((g) => `<span>${esc(g)}</span>`).join('')}</div>
-    <div class="floor">${ag.map((a) => { const j = a.jobs.find((x) => x.status === 'running') || a.jobs[0]; return `<div class="ag" data-stjob="${a.id}">${stick(a.status)}<b>${esc(a.name)}</b><span class="c">${esc(a.cls)} · ${esc(a.model)} · Lv ${a.level}</span><span class="s">${STL[a.status] || a.status}</span>${a.doing ? `<span class="j" style="color:var(--up);font-family:var(--mono)">${esc(a.doing)}</span>` : ''}${j && a.status !== 'idle' ? `<span class="j">${esc(j.title)}</span>` : ''}</div>`; }).join('') || '<div class="dim" style="font-size:13px;padding:10px">empty room</div>'}</div></div>`; }).join('');
+    <div class="floor">${ag.map((a) => { const j = a.jobs.find((x) => x.status === 'running') || a.jobs[0]; return `<div class="ag" data-stagent="${a.id}">${stick(a.status)}<b>${esc(a.name)}</b><span class="c">${esc(a.cls)} · ${esc(a.model)} · Lv ${a.level}</span><span class="s">${STL[a.status] || a.status}</span>${a.doing ? `<span class="j" style="color:var(--up);font-family:var(--mono)">${esc(a.doing)}</span>` : ''}${j && a.status !== 'idle' ? `<span class="j">${esc(j.title)}</span>` : ''}</div>`; }).join('') || '<div class="dim" style="font-size:13px;padding:10px">empty room</div>'}</div></div>`; }).join('');
   const jobs = ts.filter((t) => !['review', 'blocked'].includes(t.status));
   $('#stJobs').innerHTML = jobs.map((t) => `<div class="tr trow" data-sttask="${t.id}"><div style="min-width:0"><div class="t">${esc(t.title)}</div><div class="sub">${esc(t.agent)}</div></div><span class="tag ${t.status}">${t.status === 'running' ? 'working' : t.status === 'ready' ? 'up next' : t.status}</span></div>`).join('') || '<div class="tr dim">Nothing running or queued.</div>';
   const ord = STO.filter((o) => o.state !== 'done' || Date.now() - (o.doneAt || 0) < 3600000).slice(-8).reverse();
@@ -1020,6 +1021,57 @@ document.addEventListener('click', (e) => {
   const t = e.target.closest('[data-sttask]'); if (t) return stTaskSheet(t.dataset.sttask);
 });
 
+
+// ---- agent sheet + chat ----
+let CH = {}, chatAgent = null, chatTimer = null;
+async function loadChats() { try { CH = await getJson('chats.json', {}) || {}; } catch {} }
+function stAgentSheet(id) {
+  const a = ST.agents.find((x) => x.id === id); if (!a) return;
+  $('#stSheetIn').innerHTML = `<div class="sheeth"><h3>${esc(a.name)}</h3><button class="ibtn" data-close="stSheet">&times;</button></div>
+    <div class="dim" style="font-size:13px">${esc(a.cls)} · ${esc(a.model)} · Lv ${a.level} · ${a.done} jobs done · ${STL[a.status] || a.status}${a.doing ? ' · ' + esc(a.doing) : ''}</div>
+    <div class="dim" style="font-size:13px;margin-top:4px">Usage today $${(a.spendToday || 0).toFixed(2)} (API value, not billed)${a.cap ? ` · cap $${a.cap}/day` : ''}</div>
+    ${a.jobs.length ? `<div class="tbl" style="margin-top:10px">${a.jobs.map((j) => `<div class="tr trow" data-sttask="${j.id}"><div class="t">${esc(j.title)}</div><span class="tag ${j.status}">${j.status}</span></div>`).join('')}</div>` : ''}
+    <div class="field" style="margin-top:12px"><div class="fl">Daily usage cap ($ API value, 0 = none)</div><div style="display:flex;gap:8px"><input type="number" id="capIn" min="0" step="1" value="${a.cap || 0}" style="flex:1"><button class="btn" id="capGo">Set</button></div></div>
+    <div class="acts"><button class="btn" data-stjob="${a.id}">Give a job</button><button class="btn pri" data-stchat="${a.id}">Talk</button></div>`;
+  $('#stSheet').classList.add('on');
+  $('#capGo').onclick = async () => { await sendOrder({ type: 'cap', agent: a.id, cap: Number($('#capIn').value) || 0 }); toast('Sent'); };
+}
+function chatHTML() {
+  const c = CH[chatAgent] || { messages: [] };
+  return c.messages.map((m) => `<div class="cm ${m.role}">${m.pending ? '<span class="dim">typing...</span>' : esc(m.text).replace(/\n/g, '<br>')}</div>`).join('') || '<div class="dim" style="font-size:13px">Say something. They know their job and your goals.</div>';
+}
+async function stChat(id) {
+  chatAgent = id; const a = ST.agents.find((x) => x.id === id);
+  await loadChats();
+  $('#stSheetIn').innerHTML = `<div class="sheeth"><h3>${esc(a?.name || id)}</h3><button class="btn" id="chReset" style="margin-left:auto;margin-right:8px">New chat</button><button class="ibtn" data-close="stSheet">&times;</button></div>
+    <div class="chbox" id="chBox">${chatHTML()}</div>
+    <div style="display:flex;gap:8px;margin-top:10px"><textarea id="chIn" rows="2" style="flex:1" placeholder="Message ${esc(a?.name || '')}"></textarea><button class="btn pri" id="chGo">Send</button></div>
+    <div class="dim" style="font-size:11.5px;margin-top:4px" id="chNote"></div>`;
+  $('#stSheet').classList.add('on');
+  const box = $('#chBox'); box.scrollTop = box.scrollHeight;
+  $('#chGo').onclick = async () => { const t = $('#chIn').value.trim(); if (!t) return; $('#chIn').value = '';
+    (CH[chatAgent] ||= { messages: [] }).messages.push({ role: 'user', text: t }, { role: 'agent', pending: true, text: '' }); box.innerHTML = chatHTML(); box.scrollTop = box.scrollHeight;
+    await sendOrder({ type: 'chat', agent: chatAgent, text: t }); $('#chNote').textContent = Date.now() - ST.at < 12 * 60000 ? 'Delivered within ~30 s, replies take a minute.' : 'Engine is offline; it answers when the laptop is back.'; };
+  $('#chReset').onclick = async () => { if (!confirm('Start a fresh chat with this agent?')) return; await sendOrder({ type: 'chat', agent: chatAgent, reset: true }); CH[chatAgent] = { messages: [] }; box.innerHTML = chatHTML(); };
+  clearInterval(chatTimer);
+  chatTimer = setInterval(async () => { if (!$('#stSheet').classList.contains('on') || !$('#chBox')) { clearInterval(chatTimer); chatAgent = null; return; } const before = JSON.stringify(CH[chatAgent]); await loadChats(); const b2 = $('#chBox'); if (b2 && JSON.stringify(CH[chatAgent]) !== before && !CH[chatAgent]?.messages?.some((m) => m.pending && !m.text) === false) {} if (b2 && JSON.stringify(CH[chatAgent]) !== before) { b2.innerHTML = chatHTML(); b2.scrollTop = b2.scrollHeight; } }, 6000);
+}
+function moneyHTML() {
+  const r = ST.revenue;
+  const lines = (ST.lines || []).map((l) => l.name).join(', ');
+  const k = (l, v) => `<div class="kpi"><div class="l">${l}</div><div class="v num">${v}</div></div>`;
+  const $$m = (n) => '$' + (Number(n) || 0).toFixed(2);
+  return `${r ? `<div class="kpis">${k('Revenue (all)', $$m(r.revenue))}${k('Est. profit', $$m(r.profitEst))}${k('Orders', r.orders || 0)}${k('Last 7 days', $$m(r.week))}</div>
+    <div class="dim" style="font-size:12.5px;margin:10px 0">Printify store "${esc(r.store || '')}" · ${r.channel === 'disconnected' ? 'not connected to Etsy yet' : 'connected to ' + esc(r.channel)} · ${r.products || 0} products${r.err ? ' · error: ' + esc(r.err) : ''} · updated ${ago(r.at)} ago</div>
+    <div class="sech"><h2>Recent orders</h2></div><div class="tbl">${(r.recent || []).map((o) => `<div class="tr" style="grid-template-columns:1fr auto"><div style="min-width:0"><div class="t">${esc(o.items || 'order')}</div><div class="dim" style="font-size:12px">${new Date(o.at).toLocaleDateString()} · ${esc(o.status)}</div></div><b class="num">${$$m(o.total)}</b></div>`).join('') || '<div class="tr dim">No sales yet.</div>'}</div>` : '<div class="dim">Revenue shows up once the engine reads Printify.</div>'}
+    <div class="sech" style="margin-top:18px"><h2>Manager</h2></div><div class="tbl">${(ST.manager || []).map((m) => `<div class="logl"><span class="k up">fixing</span><span class="dim">${ago(m.at)}</span><span style="min-width:0">${esc(m.title)}${m.err ? ' · ' + esc(m.err) : ''}</span></div>`).join('') || '<div class="logl dim">Nothing stuck. The manager checks every 10 minutes and tries to unstick cards before they reach you.</div>'}</div>
+    <div class="dim" style="font-size:12px;margin-top:14px">Money lines: ${esc(lines)}. Only Etsy sales are tracked automatically so far; itch.io, Fiverr and affiliate income come later once those accounts exist.</div>`;
+}
+document.addEventListener('click', (e) => {
+  const ag = e.target.closest('[data-stagent]'); if (ag) return stAgentSheet(ag.dataset.stagent);
+  const ch = e.target.closest('[data-stchat]'); if (ch) return stChat(ch.dataset.stchat);
+});
+
 // ---- station sub-tabs: lines / outbox / night shift / goals ----
 let SS = localStorage.vd_ss || 'crew';
 function setSS(v) { SS = localStorage.vd_ss = v; $$('#stSub button').forEach((b) => b.classList.toggle('on', b.dataset.ss === v)); $('#stCrew').classList.toggle('hidden', v !== 'crew'); renderSub(); }
@@ -1028,6 +1080,7 @@ const imgCache = {};
 async function ghImg(p) { if (!imgCache[p]) imgCache[p] = gh(`/contents/${p}?ref=main`, {}, 'blob').then((b) => URL.createObjectURL(b)).catch(() => ''); return imgCache[p]; }
 function renderSub() {
   const x = $('#stX'); if (!ST || SS === 'crew') { x.innerHTML = ''; return; }
+  if (SS === 'money') { x.innerHTML = moneyHTML(); return; }
   if (SS === 'lines') x.innerHTML = (ST.lines || []).map((l) => `<div class="lnc"><div class="hd"><b>${esc(l.name)}</b><button class="btn pri" data-runline="${l.id}">Send a job</button></div><div class="dim" style="font-size:12.5px;margin-top:2px">${esc(l.desc)}</div>
       <div class="belt"><span class="bx">INBOX</span>${l.stages.map((s) => `<span class="ar">&rarr;</span><span class="bx">${esc(s.agents.join(' + '))}<small>${esc(s.name)}</small></span>`).join('')}<span class="ar">&rarr;</span><span class="bx">OUTBOX</span></div>
       ${l.routines.length ? `<div class="dim" style="font-size:12px;margin-top:8px">${l.routines.map((r) => `${esc(r.name)}: ${r.every === 'hours' ? 'every ' + r.hours + 'h' : (r.every === 'weekday' ? 'weekdays ' : 'daily ') + r.at}${r.enabled ? '' : ' (paused)'}`).join(' · ')}</div>` : ''}</div>`).join('') || '<div class="dim">No lines yet. Make them in Agent Studio.</div>';
