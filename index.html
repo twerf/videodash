@@ -292,12 +292,14 @@ textarea{min-height:96px;resize:vertical}
 @media (max-width:720px){.tks{grid-template-columns:1fr 1fr}.lgr{grid-template-columns:22px 8px 1fr 58px 52px;gap:8px}.lgr .hm{display:none}.ctlog{grid-template-columns:44px 80px 1fr auto}}
 .prods{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;margin-top:10px}.prod{display:flex;flex-direction:column;gap:3px;font-size:13px}.prod img,.prod .noimg{width:100%;aspect-ratio:1;object-fit:contain;background:#fff;border-radius:8px;border:1px solid var(--line)}.prod .noimg{display:grid;place-items:center;color:#888;font-size:12px}.prod b{font-weight:500;line-height:1.25}.prod .dim{font-size:12px}
 .chbox{max-height:55vh;overflow:auto;display:flex;flex-direction:column;gap:8px;padding:4px 0}.cm{max-width:85%;padding:8px 11px;border-radius:12px;font-size:14px;line-height:1.4}.cm.user{align-self:flex-end;background:var(--tx);color:var(--bg)}.cm.agent{align-self:flex-start;background:var(--s2);border:1px solid var(--line)}
+.mnbig{border:1px solid var(--line);border-radius:12px;background:var(--s1);padding:18px 20px;margin-bottom:12px}.mnbig .l{font-size:13px;color:var(--tx2)}.mnbig .v{font-size:40px;font-weight:600;letter-spacing:-.02em;margin:2px 0}.mnbig .dim{font-size:13px}
+.kpi .n{font-size:11.5px;color:var(--tx3);margin-top:2px}
 </style>
 </head>
 <body>
 <div class="top"><div class="topin">
   <div class="brand">VideoDash</div>
-  <div class="tabs" id="tabs"><button data-v="stats" class="on">Stats</button><button data-v="queue">Queue</button><button data-v="station">Station</button><button data-v="city">City</button></div>
+  <div class="tabs" id="tabs"><button data-v="stats" class="on">Stats</button><button data-v="queue">Queue</button><button data-v="station">Station</button><button data-v="city">City</button><button data-v="money">Money</button></div>
   <div class="sp"></div>
   <span class="upd" id="upd"></span>
   <button class="ibtn" id="refreshBtn" title="Refresh stats"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 3v6h-6"/></svg></button>
@@ -338,9 +340,19 @@ textarea{min-height:96px;resize:vertical}
     </div>
   </section>
 
+  <section id="v-money" class="hidden">
+    <div class="stline"><span class="dot" id="mnDot"></span><span id="mnLine">Loading...</span></div>
+    <div class="mnbig"><div class="l">Made so far</div><div class="v num" id="mnTotal">$0.00</div><div class="dim" id="mnSub"></div></div>
+    <div class="kpis" id="mnSrc"></div>
+    <div class="sec"><div class="sech"><h2>Orders</h2></div><div class="tbl" id="mnOrders"></div></div>
+    <div class="sec"><div class="sech"><h2>Asset packs on itch</h2></div><div class="tbl" id="mnItch"></div></div>
+    <div class="sec"><div class="sech"><h2>Activity</h2></div><div class="tbl" id="mnFeed"></div></div>
+    <div class="sec"><div class="sech"><h2>Autopilot</h2></div><div class="tbl"><div class="tr" style="grid-template-columns:1fr auto"><div><div class="t" style="font-weight:500">Run everything automatically</div><div class="dim" style="font-size:12.5px">Approves finished work, publishes Etsy products once your shop is connected, sends Etsy orders to Printify production, starts Fiverr orders from your email, and pings you on Discord.</div></div><button class="btn" id="mnAuto"></button></div></div></div>
+  </section>
+
   <section id="v-station" class="hidden">
     <div class="stline"><span class="dot" id="stDot"></span><span id="stLine">Loading station...</span></div>
-    <div class="seg stsub" id="stSub"><button data-ss="crew" class="on">Crew</button><button data-ss="money">Money</button><button data-ss="lines">Lines</button><button data-ss="outbox">Outbox</button><button data-ss="night">Night shift</button><button data-ss="goals">Goals</button></div>
+    <div class="seg stsub" id="stSub"><button data-ss="crew" class="on">Crew</button><button data-ss="lines">Lines</button><button data-ss="outbox">Outbox</button><button data-ss="night">Night shift</button><button data-ss="goals">Goals</button></div>
     <div id="stX"></div>
     <div id="stCrew">
     <div class="kpis" id="stKpis"></div>
@@ -383,6 +395,7 @@ textarea{min-height:96px;resize:vertical}
   <button data-v="stats" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Stats</button>
   <button data-v="queue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M10 9l5 3-5 3z"/></svg>Queue</button>
   <button data-v="station"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="5" r="2.5"/><path d="M12 7.5v7M12 10l-4 3M12 10l4 3M12 14.5l-3 5.5M12 14.5l3 5.5"/></svg>Station</button>
+  <button data-v="money"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2v20M17 6.5c-1-1.3-2.8-2-5-2-3 0-5 1.5-5 3.6 0 5 10 2.6 10 7.6 0 2.1-2 3.8-5 3.8-2.3 0-4.2-.8-5.2-2.2"/></svg>Money</button>
   <button data-v="city"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 21h18M5 21V10h4v11M10 21V4h5v17M16 21v-8h3v8"/></svg>City</button>
 </nav>
 <div class="sheet" id="stSheet"><div class="sheetin" id="stSheetIn"></div></div>
@@ -1270,13 +1283,34 @@ $('#ctReset').onclick = async () => {
 setInterval(() => TOKEN && view === 'city' && document.visibilityState === 'visible' && loadCity(), 20000);
 addEventListener('resize', () => CT && view === 'city' && renderCity());
 
+
+// ---------- money ----------
+const $$d = (n) => '$' + (Number(n) || 0).toFixed(2);
+async function loadMoney() { if (!ST) { try { ST = await getJson('station.json', null); } catch {} } renderMoney(); }
+function renderMoney() {
+  const M = ST?.money; if (!M) { $('#mnLine').textContent = 'No money data yet. It shows up once the engine on the laptop syncs.'; return; }
+  const online = Date.now() - ST.at < 12 * 60000;
+  $('#mnDot').classList.toggle('on', online);
+  $('#mnLine').textContent = `${online ? 'Live' : 'Laptop offline, showing last sync'} · email checked ${!M.mailAt ? 'not yet' : ago(M.mailAt) === 'now' ? 'just now' : ago(M.mailAt) + ' ago'}${M.mailError ? ' · email error: ' + M.mailError : ''}`;
+  $('#mnTotal').textContent = $$d(M.total);
+  $('#mnSub').textContent = `${$$d(M.today)} today · ${$$d(M.week)} this week · Etsy counted as profit after Printify costs and fees`;
+  $('#mnSrc').innerHTML = M.sources.map((s) => `<div class="kpi"><div class="l">${esc(s.name)}</div><div class="v num">${$$d(s.earned)}</div><div class="n">${s.orders != null ? s.orders + ' orders · ' : ''}${esc(s.note || '')}</div></div>`).join('');
+  const st = (o) => ({ making: 'crew making it', 'ready to deliver': 'deliver on Fiverr', new: 'new', paid: 'paid' }[o.status] || o.status || '');
+  $('#mnOrders').innerHTML = M.orders.map((o) => `<div class="tr" style="grid-template-columns:auto 1fr auto auto;gap:10px"><span class="tag">${esc(o.source)}</span><div style="min-width:0"><div class="t" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(o.title)}</div><div class="dim" style="font-size:12px">${new Date(o.at).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}${o.profit != null ? ' · profit ' + $$d(o.profit) : ''}</div></div><span class="dim" style="font-size:12px">${esc(st(o))}</span><b class="num">${o.amount != null ? $$d(o.amount) : ''}</b></div>`).join('') || '<div class="tr dim">No orders yet. They show up here (and ping you on Discord) the moment one lands.</div>';
+  $('#mnItch').innerHTML = (M.itch || []).map((g) => `<div class="tr" style="grid-template-columns:1fr auto"><div style="min-width:0"><a class="t" href="${esc(g.url)}" target="_blank" style="color:var(--tx)">${esc(g.title)}</a><div class="dim" style="font-size:12px">${$$d(g.price)} · ${g.views} views · ${g.downloads} downloads · ${g.purchases} sales</div></div><b class="num">${$$d(g.earnings)}</b></div>`).join('') || '<div class="tr dim">No packs yet.</div>';
+  $('#mnFeed').innerHTML = (M.feed || []).map((e) => `<div class="logl"><span class="k up">${esc(e.source)}</span><span class="dim">${ago(e.at)}</span><span style="min-width:0">${esc(e.subject)}${e.amount ? ' · ' + $$d(e.amount) : ''}</span></div>`).join('') || '<div class="logl dim">Nothing yet.</div>';
+  const b = $('#mnAuto'); b.textContent = M.autopilot ? 'On' : 'Off'; b.className = 'btn' + (M.autopilot ? ' pri' : '');
+  b.onclick = async () => { M.autopilot = !M.autopilot; renderMoney(); await sendOrder({ type: 'autopilot', on: M.autopilot }); toast('Sent'); };
+}
+setInterval(() => TOKEN && view === 'money' && document.visibilityState === 'visible' && getJson('station.json', null).then((s) => { ST = s; renderMoney(); }).catch(() => {}), 30000);
+
 // ---------- shell ----------
 function closeSheet(id) { $('#' + id).classList.remove('on'); if (id === 'qSheet') openId = null; }
 document.addEventListener('click', (e) => { const c = e.target.closest('[data-close]'); if (c) closeSheet(c.dataset.close); else if (e.target.classList.contains('sheet')) closeSheet(e.target.id); });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') $$('.sheet.on').forEach((s) => closeSheet(s.id)); });
 function setView(v) {
   view = v; $$('#tabs button, #bnav button').forEach((b) => b.classList.toggle('on', b.dataset.v === v));
-  $('#v-stats').classList.toggle('hidden', v !== 'stats'); $('#v-queue').classList.toggle('hidden', v !== 'queue'); $('#v-station').classList.toggle('hidden', v !== 'station'); $('#v-city').classList.toggle('hidden', v !== 'city'); if (v === 'station' && TOKEN) loadStation(); if (v === 'city' && TOKEN) loadCity();
+  $('#v-stats').classList.toggle('hidden', v !== 'stats'); $('#v-queue').classList.toggle('hidden', v !== 'queue'); $('#v-station').classList.toggle('hidden', v !== 'station'); $('#v-money').classList.toggle('hidden', v !== 'money'); if (v === 'money' && TOKEN) getJson('station.json', null).then((s) => { ST = s; renderMoney(); }).catch(() => {}); $('#v-city').classList.toggle('hidden', v !== 'city'); if (v === 'station' && TOKEN) loadStation(); if (v === 'city' && TOKEN) loadCity();
   history.replaceState(null, '', '#' + v); if (v === 'stats' && S) drawChart(); scrollTo({ top: 0 });
 }
 $$('#tabs button, #bnav button').forEach((b) => b.onclick = () => setView(b.dataset.v));
@@ -1298,6 +1332,7 @@ $('#gateTok').onkeydown = (e) => e.key === 'Enter' && tryLogin($('#gateTok').val
 addEventListener('resize', () => S && view === 'stats' && drawChart());
 if (location.hash === '#queue') setView('queue');
 if (location.hash === '#station') setView('station');
+if (location.hash === '#money') setView('money');
 if (location.hash === '#city') setView('city');
 setSS(SS);
 if (TOKEN) load(); else logout();
