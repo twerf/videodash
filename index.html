@@ -81,22 +81,37 @@ canvas{display:block;width:100%}
 .acc-name small{display:block;font-size:12px;color:var(--tx3);font-weight:400}
 .sub{display:block;font-size:12px;font-family:var(--mono)}
 
-.post{grid-template-columns:44px minmax(0,1fr) 84px 76px 64px 64px 64px;cursor:pointer}
+.post{grid-template-columns:44px minmax(0,1fr) 84px 72px 64px 64px 64px;cursor:pointer}
 .post:not(.th):hover{background:var(--s2)}
 .post img,.thumbph{width:44px;height:58px;object-fit:cover;border-radius:5px;background:var(--s2);display:block}
 .ptitle{overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;font-size:13.5px}
 .pmeta{font-size:12px;color:var(--tx3);margin-top:2px}
 .pv{font-weight:500}
 .post .pv+.sub{display:none}
-.detail{grid-column:1/-1;display:none;grid-template-columns:repeat(4,1fr) auto;gap:10px;padding:4px 0 2px 56px}
+.detail{grid-column:1/-1;display:none;grid-template-columns:repeat(4,1fr);gap:10px;padding:4px 0 2px 56px}
 .post.open .detail{display:grid}
 .dt .l{font-size:11px;color:var(--tx3)}
 .dt .v{font-family:var(--mono);font-size:14px}
-.olink{align-self:center;font-size:13px;color:var(--tx);text-decoration:none;border:1px solid var(--line2);border-radius:7px;padding:6px 10px;white-space:nowrap}
+.olink{grid-column:1/-1;justify-self:start;align-self:center;font-size:13px;color:var(--tx);text-decoration:none;border:1px solid var(--line2);border-radius:7px;padding:6px 10px;white-space:nowrap}
 .more{display:block;width:100%;border:0;border-top:1px solid var(--line);background:none;color:var(--tx2);padding:11px;cursor:pointer}
 .more:hover{color:var(--tx)}
 .empty{padding:28px;text-align:center;color:var(--tx3)}
 .warn{font-size:12px;color:var(--down);margin-top:8px}
+
+/* insights */
+.ins{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:12px}
+.topic{grid-template-columns:minmax(0,1.4fr) 44px 76px 64px 64px}
+.ratio{font-weight:500}
+.bars{display:flex;align-items:flex-end;gap:6px;height:110px;margin-top:10px}
+.bar{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:4px}
+.bar i{display:block;width:100%;background:#3a3d44;border-radius:3px 3px 0 0;min-height:2px}
+.bar.best i{background:var(--tx)}
+.bar span{font-size:10.5px;color:var(--tx3);font-family:var(--mono)}
+.bar b{font-size:10.5px;font-weight:400;color:var(--tx2);font-family:var(--mono)}
+.flag{display:inline-block;font-size:11px;font-weight:500;padding:1px 6px;border-radius:4px;margin-right:6px;vertical-align:1px}
+.flag.br{background:rgba(76,195,138,.14);color:var(--up)}
+.flag.fl{background:rgba(229,72,77,.13);color:var(--down)}
+.note{font-size:12px;color:var(--tx3);margin-top:8px}
 
 /* queue */
 .qbar{display:flex;gap:8px;align-items:center}
@@ -186,6 +201,9 @@ textarea{min-height:96px;resize:vertical}
   .acts .btn{flex:1}
   .bnav{display:flex}
   .setrow{grid-template-columns:90px 1fr auto}
+  .ins{grid-template-columns:1fr}
+  .topic{grid-template-columns:minmax(0,1fr) 34px 64px 58px}
+  .topic>:nth-child(5){display:none}
 }
 .bnav{display:none;position:fixed;left:0;right:0;bottom:0;z-index:20;background:rgba(12,13,15,.96);backdrop-filter:blur(8px);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
 .bnav button{flex:1;border:0;background:none;color:var(--tx3);padding:10px 0 8px;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;font-weight:500;cursor:pointer}
@@ -209,6 +227,14 @@ textarea{min-height:96px;resize:vertical}
     <div class="kpis" id="kpis"></div>
     <div id="errs"></div>
 
+    <div class="sec" id="insSec">
+      <div class="sech"><h2>What's working</h2></div>
+      <div class="ins">
+        <div class="tbl" id="topicTbl"></div>
+        <div class="chart" id="timeBox"></div>
+      </div>
+    </div>
+
     <div class="sec">
       <div class="chart">
         <div class="charth"><span class="mut" style="font-size:13px">Total views</span><span class="num" id="chartNow" style="font-size:13px"></span>
@@ -224,7 +250,7 @@ textarea{min-height:96px;resize:vertical}
 
     <div class="sec">
       <div class="sech"><h2>Posts</h2><div class="sp"></div>
-        <div class="seg" id="sort"><button data-s="new" class="on">Newest</button><button data-s="top">Top</button><button data-s="hot">Gaining</button></div></div>
+        <div class="seg" id="sort"><button data-s="new" class="on">Newest</button><button data-s="top">Top</button><button data-s="hot">Gaining</button><button data-s="d1">Best 24h</button></div></div>
       <div class="tbl" id="postTbl"></div>
     </div>
   </section>
@@ -393,10 +419,41 @@ function gain(v) { const s = snap24(); return s && s.vid[v.id] != null ? (v.view
 const cleanTitle = (t) => String(t || '').replace(/#[^\s#]+/g, ' ').replace(/\s+/g, ' ').replace(/\.\.\.$|…$/, '').trim();
 const eng = (v) => v.views ? ((v.likes || 0) + (v.comments || 0) + (v.shares || 0) + (v.saves || 0)) / v.views * 100 : null;
 const sum = (arr, k) => arr.reduce((s, v) => s + (v[k] || 0), 0);
+const H = 3600e3;
+const ageH = (v) => v.posted ? (Date.now() - v.posted) / H : null;
+const at = (v, h) => v.ms?.['h' + h] ?? null;
+const rate = (v, k) => v.views && v[k] != null ? v[k] / v.views * 100 : null;
+const pct = (x) => x == null ? '–' : (x >= 10 ? x.toFixed(0) : x.toFixed(1)) + '%';
+const median = (a) => { if (!a.length) return null; const b = [...a].sort((x, y) => x - y), m = b.length >> 1; return b.length % 2 ? b[m] : (b[m - 1] + b[m]) / 2; };
+// comparable "performance" number: views at 24h, or total views for posts that are past 24h but missed the 24h snapshot
+const perf = (v) => at(v, 24) ?? (ageH(v) >= 24 ? v.views : null);
+const GENERIC = new Set(['core', 'fyp', 'foryou', 'foryoupage', 'fy', 'fypシ', 'moviecore', 'funny', 'comedy', 'compilation', 'viral', 'trending', 'xyzbca', 'blowthisup', 'tiktokshop', 'tiktokmademebuyit', 'shorts', 'meme', 'memes', 'movie', 'movies', 'gameshow', 'familyfeudfunny', 'feudco']);
+const topicOf = (v) => { const tags = (String(v.title) + ' ' + (v.description || '')).toLowerCase().match(/#[\w\u00c0-\uffff]+/g) || []; const t = tags.map((x) => x.slice(1)).find((x) => !GENERIC.has(x)); return t || null; };
+let BASE = {};
+function computeBase() {
+  BASE = {};
+  for (const a of S.accounts) {
+    const vs = S.stats.videos.filter((v) => v.account === a.id);
+    const p = vs.map(perf).filter((x) => x != null), e = vs.map((v) => at(v, 3)).filter((x) => x != null);
+    const old = vs.filter((v) => ageH(v) >= 12 && v.views != null).map((v) => v.views);
+    BASE[a.id] = { d1: p.length >= 3 ? median(p) : old.length >= 3 ? median(old) : null, h3: e.length >= 3 ? median(e) : null };
+  }
+}
+function flagOf(v) {
+  const b = BASE[v.account] || {}; let r = null, early = false;
+  const p = perf(v);
+  if (p != null && b.d1) r = p / b.d1;
+  else if (ageH(v) < 24 && at(v, 3) != null && b.h3) { r = at(v, 3) / b.h3; early = true; }
+  if (r == null) return null;
+  if (r >= 2) return { cls: 'br', txt: (early ? 'Fast start ' : 'Breakout ') + r.toFixed(1) + '×', r };
+  if (r <= 0.4) return { cls: 'fl', txt: early ? 'Slow start' : 'Flop', r };
+  return null;
+}
+const relPerf = (v) => { const b = BASE[v.account]?.d1, p = perf(v); return b && p != null ? p / b : null; };
 
 function render() {
   $('#upd').textContent = S.stats.at ? 'Updated ' + ago(S.stats.at) + (ago(S.stats.at) === 'now' ? '' : ' ago') : '';
-  renderChips(); renderStats(); renderQueue();
+  computeBase(); renderChips(); renderStats(); renderQueue();
 }
 
 function renderChips() {
@@ -441,28 +498,33 @@ function renderStats() {
   }
 
   // posts
-  const key = { new: (v) => v.posted || 0, top: (v) => v.views || 0, hot: (v) => gain(v) ?? -1 }[SORT];
+  const key = { new: (v) => v.posted || 0, top: (v) => v.views || 0, hot: (v) => gain(v) ?? -1, d1: (v) => at(v, 24) ?? -1 }[SORT];
   const list = [...vids].sort((a, b) => key(b) - key(a));
   const multi = sel.length > 1;
-  $('#postTbl').innerHTML = `<div class="tr post th"><div></div><div>Post</div><div class="r">Views</div><div class="r">24h</div><div class="r">Likes</div><div class="r">Comm.</div><div class="r">Eng.</div></div>` +
+  $('#postTbl').innerHTML = `<div class="tr post th"><div></div><div>Post</div><div class="r">Views</div><div class="r" title="views it had 24h after posting">At 24h</div><div class="r" title="shares / views">Share</div><div class="r" title="saves / views">Save</div><div class="r" title="(likes+comments+shares+saves) / views">Eng.</div></div>` +
     (list.slice(0, SHOWN).map((v) => {
-      const g = gain(v), e = eng(v), a = acct(v.account);
+      const g = gain(v), e = eng(v), a = acct(v.account), fl = flagOf(v), yt = v.platform === 'youtube';
       return `<div class="tr post" data-id="${esc(v.id)}">
         ${v.thumb ? `<img src="${esc(v.thumb)}" loading="lazy" referrerpolicy="no-referrer" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'thumbph'}))">` : '<div class="thumbph"></div>'}
         <div style="min-width:0"><div class="ptitle">${esc(cleanTitle(v.title)) || '<span class="dim">No caption</span>'}</div>
-          <div class="pmeta">${multi ? '@' + esc(a.handle) + ' · ' : ''}${plat(v.platform)} · ${ago(v.posted)}${v.duration ? ' · ' + v.duration + 's' : ''}</div></div>
+          <div class="pmeta">${fl ? `<span class="flag ${fl.cls}">${fl.txt}</span>` : ''}${multi ? '@' + esc(a.handle) + ' · ' : ''}${plat(v.platform)} · ${ago(v.posted)}${v.duration ? ' · ' + v.duration + 's' : ''}</div></div>
         <div class="r"><div class="num pv">${fmt(v.views)}</div><span class="sub ${g > 0 ? 'up' : 'dim'}">${g == null ? '' : sgn(g)}</span></div>
-        <div class="r num ${g > 0 ? 'up' : 'dim'}">${g == null ? '–' : sgn(g)}</div>
-        <div class="r num">${fmt(v.likes)}</div><div class="r num">${fmt(v.comments)}</div><div class="r num">${e == null ? '–' : e.toFixed(1) + '%'}</div>
+        <div class="r num">${at(v, 24) != null ? fmt(at(v, 24)) : ageH(v) < 24 ? '<span class="dim">' + Math.floor(ageH(v)) + 'h old</span>' : '<span class="dim">–</span>'}</div>
+        <div class="r num">${yt ? '<span class="dim">–</span>' : pct(rate(v, 'shares'))}</div><div class="r num">${yt ? '<span class="dim">–</span>' : pct(rate(v, 'saves'))}</div><div class="r num">${pct(e)}</div>
         <div class="detail">
           <div class="dt"><div class="l">Likes</div><div class="v">${fmt(v.likes)}</div></div>
           <div class="dt"><div class="l">Comments</div><div class="v">${fmt(v.comments)}</div></div>
-          <div class="dt"><div class="l">${v.platform === 'youtube' ? 'Eng.' : 'Shares'}</div><div class="v">${v.platform === 'youtube' ? (e == null ? '–' : e.toFixed(1) + '%') : fmt(v.shares)}</div></div>
-          <div class="dt"><div class="l">${v.platform === 'youtube' ? 'Posted' : 'Saves'}</div><div class="v">${v.platform === 'youtube' ? ago(v.posted) : fmt(v.saves)}</div></div>
-          <a class="olink" href="${esc(v.url)}" target="_blank" rel="noopener">Open on ${v.platform === 'youtube' ? 'YouTube' : 'TikTok'} ↗</a>
+          <div class="dt"><div class="l">Shares</div><div class="v">${yt ? '–' : fmt(v.shares) + ' <span class="dim">' + pct(rate(v, 'shares')) + '</span>'}</div></div>
+          <div class="dt"><div class="l">Saves</div><div class="v">${yt ? '–' : fmt(v.saves) + ' <span class="dim">' + pct(rate(v, 'saves')) + '</span>'}</div></div>
+          <div class="dt"><div class="l">At 3h</div><div class="v">${fmt(at(v, 3))}</div></div>
+          <div class="dt"><div class="l">At 24h</div><div class="v">${fmt(at(v, 24))}</div></div>
+          <div class="dt"><div class="l">At 3 days</div><div class="v">${fmt(at(v, 72))}</div></div>
+          <div class="dt"><div class="l">vs typical</div><div class="v">${relPerf(v) != null ? relPerf(v).toFixed(1) + '×' : '–'}</div></div>
+          <a class="olink" href="${esc(v.url)}" target="_blank" rel="noopener">Open on ${yt ? 'YouTube' : 'TikTok'} ↗</a>
         </div></div>`;
     }).join('') || '<div class="empty">No posts yet</div>') +
     (list.length > SHOWN ? `<button class="more" id="moreBtn">Show ${Math.min(15, list.length - SHOWN)} more · ${list.length} total</button>` : '');
+  renderInsights(vids);
   drawChart();
 }
 $('#accTbl').onclick = (e) => { const r = e.target.closest('[data-f]'); if (r) { F = r.dataset.f; localStorage.setItem('vd_f', F); renderChips(); renderStats(); scrollTo({ top: 0 }); } };
@@ -473,6 +535,31 @@ $('#postTbl').onclick = (e) => {
 };
 $('#sort').onclick = (e) => { const b = e.target.closest('[data-s]'); if (!b) return; SORT = b.dataset.s; $$('#sort button').forEach((x) => x.classList.toggle('on', x === b)); renderStats(); };
 $('#range').onclick = (e) => { const b = e.target.closest('[data-r]'); if (!b) return; RANGE = +b.dataset.r; $$('#range button').forEach((x) => x.classList.toggle('on', x === b)); drawChart(); };
+
+function renderInsights(vids) {
+  const mature = vids.filter((v) => relPerf(v) != null);
+  // topics
+  const groups = {};
+  for (const v of mature) { const t = topicOf(v) || 'no hashtag'; (groups[t] = groups[t] || []).push(v); }
+  const rows = Object.entries(groups).map(([t, vs]) => {
+    const tt = vs.filter((v) => v.platform !== 'youtube' && v.views);
+    return { t, n: vs.length, rel: median(vs.map(relPerf)), d1: median(vs.map(perf)),
+      share: tt.length ? tt.reduce((s, v) => s + (v.shares || 0), 0) / tt.reduce((s, v) => s + v.views, 0) * 100 : null };
+  }).sort((a, b) => b.rel - a.rel || b.n - a.n);
+  $('#topicTbl').innerHTML = `<div class="tr topic th"><div>Topic</div><div class="r">Posts</div><div class="r" title="median views at 24h">24h views</div><div class="r" title="compared to that account's typical post">vs typical</div><div class="r">Share</div></div>` +
+    (rows.slice(0, 8).map((r) => `<div class="tr topic"><div style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">#${esc(r.t)}</div><div class="r num">${r.n}</div><div class="r num">${fmt(r.d1)}</div>
+      <div class="r num ratio ${r.rel >= 1.3 ? 'up' : r.rel <= 0.7 ? 'down' : ''}">${r.rel.toFixed(1)}×</div><div class="r num">${pct(r.share)}</div></div>`).join('') ||
+    '<div class="empty">Shows up once posts are a day old</div>');
+  // posting time (3h buckets, local time), normalized per account
+  const B = Array.from({ length: 8 }, () => []);
+  for (const v of mature) B[Math.floor(new Date(v.posted).getHours() / 3)].push(relPerf(v));
+  const vals = B.map((b) => b.length ? median(b) : null), mx = Math.max(...vals.filter((x) => x != null), 1);
+  const ok = vals.map((x, i) => x != null && B[i].length >= 2 ? x : -1), bi = ok.indexOf(Math.max(...ok));
+  const lbl = ['12a', '3a', '6a', '9a', '12p', '3p', '6p', '9p'], rng = ['12–3 AM', '3–6 AM', '6–9 AM', '9 AM–12 PM', '12–3 PM', '3–6 PM', '6–9 PM', '9 PM–12 AM'];
+  $('#timeBox').innerHTML = `<div class="charth"><span class="mut" style="font-size:13px">Best time to post</span><span class="num" style="font-size:13px;margin-left:auto">${ok[bi] > 0 ? rng[bi] : ''}</span></div>
+    <div class="bars">${vals.map((x, i) => `<div class="bar ${i === bi && ok[bi] > 0 ? 'best' : ''}" title="${B[i].length} posts" style="${B[i].length < 2 ? 'opacity:.45' : ''}"><b>${x == null ? '' : x.toFixed(1) + '×'}</b><i style="height:${x == null ? 0 : Math.max(3, x / mx * 70)}px"></i><span>${lbl[i]}</span></div>`).join('')}</div>
+    <div class="note">${mature.length} posts so far, vs each account's typical post, your local time. Faded bars have only 1 post so they don't count yet.</div>`;
+}
 
 function drawChart() {
   const c = $('#chart'), dpr = devicePixelRatio || 1, w = c.clientWidth, h = +(c.dataset.h || (c.dataset.h = c.getAttribute('height')));
