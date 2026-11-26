@@ -270,16 +270,27 @@ textarea{min-height:96px;resize:vertical}
 .cty svg{display:block;width:100%;height:auto}
 .cty .tw{cursor:pointer}.cty .tw:hover .body{stroke:var(--tx2)}
 .cty .body{fill:var(--s2);stroke:var(--line2);stroke-width:1.5}
-.cty .win{fill:var(--line2)}.cty .win.lit{fill:#e2b93b55}
-.cty .lbl{fill:var(--tx);font:600 12px Geist,sans-serif;text-anchor:middle}.cty .sub{fill:var(--tx3);font:500 11px 'Geist Mono',monospace;text-anchor:middle}
-.cty .beam{animation:bm 1.2s ease-in-out infinite alternate}@keyframes bm{from{opacity:.35}to{opacity:.9}}
+.cty .bench{fill:#16181b;stroke:#202227;stroke-width:1}
+.cty .win{fill:var(--line2)}.cty .win.lit{fill:#e2b93b66}
+.cty .lbl{fill:var(--tx);font:600 13px Geist,sans-serif;text-anchor:middle}.cty .sub{fill:var(--tx3);font:500 11px 'Geist Mono',monospace;text-anchor:middle}
+.cty .beam{animation:bm 1.2s ease-in-out infinite alternate}@keyframes bm{from{opacity:.25}to{opacity:.7}}
 .cty .chg{animation:cg 1.6s ease-in-out infinite alternate}@keyframes cg{from{opacity:.4}to{opacity:1}}
-.tick3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
-.tick3>div{border:1px solid var(--line);border-radius:10px;background:var(--s1);padding:10px 12px}
-.tick3 b{font-weight:600}.tick3 svg{width:100%;height:34px;display:block;margin-top:4px}
-.ctlog{font-size:12.5px;display:grid;grid-template-columns:52px 90px 1fr auto;gap:8px;padding:7px 12px;border-top:1px solid var(--line);align-items:baseline}.ctlog:first-child{border-top:0}
+.lg{border:1px solid var(--line);border-radius:10px;background:var(--s1);overflow:hidden}
+.lgr{display:grid;grid-template-columns:28px 10px 1fr 64px 64px 56px;gap:10px;align-items:center;padding:8px 12px;border-top:1px solid var(--line);font-size:13px;cursor:pointer}
+.lgr:first-child{border-top:0;cursor:default}.lgr.h{font-size:11.5px;color:var(--tx3);text-transform:uppercase;letter-spacing:.04em}
+.lgr:not(.h):hover{background:var(--s2)}.lgr .r{text-align:right}
+.lgr.cut{border-top:1px dashed var(--line2)}
+.sdot{width:8px;height:8px;border-radius:50%;background:var(--line2)}
+.fund{font-size:11px;color:var(--tx);background:var(--s2);border:1px solid var(--line2);border-radius:4px;padding:0 5px;margin-left:6px;font-family:var(--mono)}
+.tks{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.tks>div{border:1px solid var(--line);border-radius:10px;background:var(--s1);padding:8px 10px;min-width:0}
+.tks b{font-weight:600;font-size:13px}.tks svg{width:100%;height:26px;display:block;margin-top:2px}
+.tks .d{font-size:11px;color:var(--tx3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.more{display:block;width:100%;margin-top:8px;border:1px solid var(--line);background:none;color:var(--tx2);border-radius:8px;padding:7px;cursor:pointer;font-size:13px}
+.ctlog{font-size:12.5px;display:grid;grid-template-columns:52px 96px 1fr auto;gap:8px;padding:7px 12px;border-top:1px solid var(--line);align-items:baseline}.ctlog:first-child{border-top:0}
 .bar2{height:6px;border-radius:3px;background:var(--line);overflow:hidden;margin-top:6px}.bar2 i{display:block;height:100%}
-@media (max-width:720px){.tick3{grid-template-columns:1fr 1fr 1fr}.ctlog{grid-template-columns:44px 74px 1fr auto}}
+@media (max-width:720px){.tks{grid-template-columns:1fr 1fr}.lgr{grid-template-columns:22px 8px 1fr 58px 52px;gap:8px}.lgr .hm{display:none}.ctlog{grid-template-columns:44px 80px 1fr auto}}
+.prods{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;margin-top:10px}.prod{display:flex;flex-direction:column;gap:3px;font-size:13px}.prod img,.prod .noimg{width:100%;aspect-ratio:1;object-fit:contain;background:#fff;border-radius:8px;border:1px solid var(--line)}.prod .noimg{display:grid;place-items:center;color:#888;font-size:12px}.prod b{font-weight:500;line-height:1.25}.prod .dim{font-size:12px}
 </style>
 </head>
 <body>
@@ -343,11 +354,12 @@ textarea{min-height:96px;resize:vertical}
   <section id="v-city" class="hidden">
     <div class="stline"><span class="dot" id="ctDot"></span><span id="ctLine">Loading city...</span></div>
     <div class="kpis" id="ctKpis"></div>
-    <div class="sec"><div class="cty" id="ctCity"></div><div class="dim" style="font-size:12px;margin-top:6px">Tap a tower. Top light = what the bot is leaning toward (green up, red down), brighter = closer to firing. Beam = it has a bet open.</div></div>
-    <div class="tick3" id="ctTick"></div>
+    <div class="sec"><div class="cty" id="ctCity"></div><div class="dim" style="font-size:12px;margin-top:6px" id="ctCap"></div></div>
+    <div class="sec"><div class="sech"><h2>League</h2><span class="dim" style="font-size:12px" id="ctLgNote"></span></div><div class="lg" id="ctLg"></div><button class="more" id="ctLgMore"></button></div>
     <div class="sec"><div class="chart"><div class="charth"><span class="mut" style="font-size:13px">Balance</span><span class="num" id="ctNow" style="font-size:13px"></span></div><div id="ctEq"></div></div></div>
-    <div class="sec"><div class="sech"><h2>Activity</h2><span class="dim" style="font-size:12px">times in ET</span></div><div class="tbl" id="ctLog"></div></div>
-    <p class="dim" style="font-size:12.5px;margin-top:18px">Practice money only. Prices are real (1-minute bars, US market hours). The bots run on GitHub (twerf/city-bots), so the laptop can be off. "Up bet" works like a call and "down bet" like a put, but these are fractional ETF positions with no leverage. Real options cost more than $20 per contract.</p>
+    <div class="sec"><div class="sech"><h2>Tickers</h2></div><div class="tks" id="ctTick"></div><button class="more" id="ctTkMore"></button></div>
+    <div class="sec"><div class="sech"><h2>Activity</h2><span class="dim" style="font-size:12px">funded bots · times in ET</span></div><div class="tbl" id="ctLog"></div></div>
+    <p class="dim" style="font-size:12.5px;margin-top:18px">Practice money only. Prices are real (1-minute bars, US market hours) and the bots run on GitHub (twerf/city-bots), so the laptop can be off. Each morning every bot is ranked on its last 10 sessions and the money goes to the top 8: #1 gets the biggest slice, #8 the smallest. "Up bet" is like a call and "down bet" like a put, but these are plain fractional positions with no leverage.</p>
     <div class="acts"><button class="btn danger" id="ctReset">Reset to $20</button></div>
   </section>
 
@@ -1020,10 +1032,12 @@ function renderSub() {
       <div class="belt"><span class="bx">INBOX</span>${l.stages.map((s) => `<span class="ar">&rarr;</span><span class="bx">${esc(s.agents.join(' + '))}<small>${esc(s.name)}</small></span>`).join('')}<span class="ar">&rarr;</span><span class="bx">OUTBOX</span></div>
       ${l.routines.length ? `<div class="dim" style="font-size:12px;margin-top:8px">${l.routines.map((r) => `${esc(r.name)}: ${r.every === 'hours' ? 'every ' + r.hours + 'h' : (r.every === 'weekday' ? 'weekdays ' : 'daily ') + r.at}${r.enabled ? '' : ' (paused)'}`).join(' · ')}</div>` : ''}</div>`).join('') || '<div class="dim">No lines yet. Make them in Agent Studio.</div>';
   if (SS === 'outbox') {
-    x.innerHTML = (ST.runs || []).filter((r) => r.status !== 'cancelled').map((r) => `<div class="lnc"><div class="hd"><b>${esc(r.name)}</b><span class="tag ${r.status === 'ready' ? 'review' : r.status === 'stuck' ? 'blocked' : r.status === 'running' ? 'running' : ''}">${r.status === 'ready' ? 'ready for you' : r.status === 'running' ? `stage ${r.stageNow + 1}/${r.stages}` : r.status}</span></div>
-      <div class="dim" style="font-size:12px;margin-top:2px">${ago(r.at)} ago${r.by === 'routine' ? ' · routine' : ''} · ${esc(r.input.slice(0, 120))}</div>
-      ${r.imgs.length ? `<div class="obimgs">${r.imgs.map((p) => `<img data-ghimg="${esc(p)}" alt="">`).join('')}</div>` : ''}
-      ${r.files.length ? `<div class="files">${r.files.filter((f) => !/\.(png|jpe?g|webp)$/i.test(f)).map((f) => `<span>${esc(f)}</span>`).join('')}</div>` : ''}
+    const runs = (ST.runs || []).filter((r) => r.status !== 'cancelled');
+    const label = { ready: 'ready for you', delivered: 'approved', stuck: 'stuck', running: 'in progress' };
+    x.innerHTML = runs.map((r) => `<div class="lnc"><div class="hd"><b>${esc(r.name)} · ${new Date(r.at).toLocaleDateString([], { month: 'short', day: 'numeric' })}</b><span class="tag ${r.status === 'ready' ? 'review' : r.status === 'stuck' ? 'blocked' : r.status === 'running' ? 'running' : ''}">${r.status === 'running' ? `step ${r.stageNow + 1} of ${r.stages}` : label[r.status] || r.status}</span></div>
+      ${r.products?.length ? `<div class="prods">${r.products.map((p) => `<div class="prod">${p.img ? `<img data-ghimg="${esc(p.img)}" alt="">` : '<div class="noimg">image coming</div>'}<b>${esc(p.title)}</b><span class="dim">${esc([p.type, p.price].filter(Boolean).join(' · '))}</span>${p.printify ? '<span class="up" style="font-size:11.5px">in Printify (draft)</span>' : ''}</div>`).join('')}</div>`
+        : `<div class="dim" style="font-size:13px;margin-top:8px">${r.status === 'running' ? 'The crew is still working on this.' : 'No products in this batch.'}</div>`}
+      <details style="margin-top:8px"><summary class="dim" style="font-size:12px;cursor:pointer">${r.files.length} files</summary><div class="files">${r.files.map((f) => `<span>${esc(f)}</span>`).join('')}</div></details>
       ${r.final ? `<div class="acts" style="margin-top:10px"><button class="btn" data-sttask="${r.final}">Details</button><button class="btn pri" data-quickok="${r.final}">Looks good</button></div>` : ''}</div>`).join('') || '<div class="dim">Nothing delivered yet.</div>';
     $$('[data-ghimg]', x).forEach(async (im) => { im.src = await ghImg(im.dataset.ghimg); });
   }
@@ -1055,7 +1069,7 @@ document.addEventListener('click', async (e) => {
 
 setInterval(() => TOKEN && view === 'station' && document.visibilityState === 'visible' && loadStation(), 30000);
 
-// ---------- city (paper-trading bots, synced from the laptop) ----------
+// ---------- city (paper-trading bots, run on GitHub: twerf/city-bots) ----------
 let CT = null;
 const cusd = (n, d = 2) => (n < 0 ? '−$' : '$') + Math.abs(n).toFixed(d);
 const cpct = (n) => (n > 0 ? '+' : n < 0 ? '−' : '') + Math.abs(n).toFixed(2) + '%';
@@ -1079,51 +1093,79 @@ function spark(arr, w = 200, h = 34, col) {
   const pts = arr.map((v, i) => `${(i / (arr.length - 1) * w).toFixed(1)},${(h - 2 - (v - mn) / sp * (h - 4)).toFixed(1)}`).join(' ');
   return `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none"><polyline points="${pts}" fill="none" stroke="${col}" stroke-width="1.5" vector-effect="non-scaling-stroke"/></svg>`;
 }
+let ctLgAll = false, ctTkAll = false;
+const sigCol = (b) => b.pos ? (b.pos.side === 'up' ? 'var(--up)' : 'var(--down)') : b.sig?.dir === 'up' ? 'var(--up)' : b.sig?.dir === 'down' ? 'var(--down)' : 'var(--tx3)';
+const sname = (b) => ({ trend: 'Trend', og: 'OG', fade: 'Fade' })[b.strat] || b.strat;
 function renderCity() {
-  if (!CT) { $('#ctLine').textContent = 'No city data yet. Agent Studio on the laptop pushes it once it runs.'; return; }
+  if (!CT) { $('#ctLine').textContent = 'No city data yet.'; return; }
+  if (CT.v !== 2) { $('#ctLine').textContent = 'Waiting for the bots to publish the new format...'; return; }
   const open = CT.open && Date.now() < CT.closeAt, fresh = Date.now() - CT.at < 5 * 60000;
   $('#ctDot').classList.toggle('on', open && fresh);
   $('#ctLine').innerHTML = open && !fresh ? `Runner quiet for ${ago(CT.at)} · GitHub sometimes starts runs late, it picks back up on its own`
-    : open ? `Market open · bots trading on GitHub · closes ${etTime(CT.closeAt)} ET · synced ${ago(CT.at) === 'now' ? 'just now' : ago(CT.at) + ' ago'}`
+    : open ? `Market open · bots trading · closes ${etTime(CT.closeAt)} ET · synced ${ago(CT.at) === 'now' ? 'just now' : ago(CT.at) + ' ago'}`
     : `Market closed · bots start again at the next open (9:30 ET weekdays)${CT.err ? ' · ' + esc(CT.err) : ''}`;
-  const B = CT.bots, day = B.reduce((a, b) => a + b.equity - b.dayStart, 0), all = CT.total - CT.startCash;
-  const n = B.reduce((a, b) => a + b.n, 0), w = B.reduce((a, b) => a + b.wins, 0);
-  $('#ctKpis').innerHTML = [['Balance (fake)', cusd(CT.total)], ['Today', `<span class="${cls(day)}">${cusd(day, 3)}</span>`], ['All time', `<span class="${cls(all)}">${cpct(all / CT.startCash * 100)}</span>`], ['Win rate', n ? Math.round(w / n * 100) + '% <span class="dim" style="font-size:13px">of ' + n + '</span>' : '–']]
+  const B = CT.bots, funded = B.filter((b) => b.funded).sort((a, b) => a.rank - b.rank), preview = !funded.length, F = preview ? [...B].sort((a, b) => a.liveRank - b.liveRank).slice(0, CT.fund?.top || 8) : funded;
+  const day = funded.reduce((a, b) => a + b.equity - b.alloc, 0), all = CT.total - CT.startCash;
+  const real = B.flatMap((b) => b.trades.filter((t) => t.real)), w = real.filter((t) => t.pnl > 0).length;
+  $('#ctKpis').innerHTML = [['Balance (fake)', cusd(CT.total)], ['Today', `<span class="${cls(day)}">${cusd(day, 3)}</span>`], ['All time', `<span class="${cls(all)}">${cpct(all / CT.startCash * 100)}</span>`], ['Bots', `${funded.length}<span class="dim" style="font-size:14px"> funded / ${B.length}</span>`]]
     .map(([l, v]) => `<div class="kpi"><div class="l">${l}</div><div class="v num">${v}</div></div>`).join('');
-  // the city
-  const sm = innerWidth < 600, W = sm ? 380 : 700, H = sm ? 290 : 300, G = sm ? 236 : 250, tw = sm ? 58 : 80, gap = (W - B.length * tw) / (B.length + 1), base = CT.startCash / B.length;
-  const towers = B.map((b, i) => {
-    const x = gap + i * (tw + gap), ht = Math.max(60, Math.min(200, 130 + (b.equity - base) / base * 2000)), y = G - ht;
-    const col = b.sig.dir === 'up' ? 'var(--up)' : b.sig.dir === 'down' ? 'var(--down)' : 'var(--tx3)';
-    const pc = b.pos ? (b.pos.side === 'up' ? 'var(--up)' : 'var(--down)') : col;
-    let wins = ''; const lit = Math.round((b.sig.charge || 0) * 12);
-    const cw = (tw - 24) / 3 + 0; for (let r = 0, k = 0; y + 14 + r * 16 < G - 8; r++) for (let c = 0; c < 3; c++, k++) wins += `<rect class="win ${k < lit ? 'lit' : ''}" x="${x + 8 + c * (tw - 16) / 3 + ((tw - 16) / 3 - 12) / 2}" y="${y + 14 + r * 16}" width="12" height="8" rx="1"/>`;
-    const beam = b.pos ? `<rect class="beam" x="${x + tw / 2 - 5}" y="0" width="10" height="${y - 6}" fill="${pc}" opacity=".6"/>` : '';
-    const light = `<circle class="${b.sig.charge > 0.6 ? 'chg' : ''}" cx="${x + tw / 2}" cy="${y - 10}" r="${5 + (b.sig.charge || 0) * 4}" fill="${pc}" opacity="${b.pos ? 1 : 0.25 + (b.sig.charge || 0) * 0.75}"/>`;
-    const dd = b.equity - b.dayStart, lock = b.lock ? `<text class="sub" x="${x + tw / 2}" y="${y + ht / 2}" style="fill:#e2b93b">${b.lock === 'profit lock' ? 'LOCKED' : 'STOPPED'}</text>` : '';
-    return `<g class="tw" data-ctbot="${b.id}">${beam}<line x1="${x + tw / 2}" y1="${y}" x2="${x + tw / 2}" y2="${y - 6}" stroke="var(--line2)" stroke-width="2"/>${light}<rect class="body" x="${x}" y="${y}" width="${tw}" height="${ht}" rx="3"/>${wins}${lock}
-      <text class="lbl" x="${x + tw / 2}" y="${G + 18}" ${sm ? 'style="font-size:11px"' : ''}>${esc(b.name)}</text><text class="sub" x="${x + tw / 2}" y="${G + 34}" ${sm ? 'style="font-size:10px"' : ''}><tspan>${cusd(b.equity, 3)}</tspan>${sm ? `</text><text class="sub" x="${x + tw / 2}" y="${G + 48}" style="font-size:10px">` : ' '}<tspan style="fill:${dd > 0 ? 'var(--up)' : dd < 0 ? 'var(--down)' : 'var(--tx3)'}">${dd >= 0 ? '+' : '−'}${Math.abs(dd).toFixed(3)}</tspan></text></g>`;
+
+  // ---- skyline ----
+  const sm = innerWidth < 600, W = sm ? 380 : 760, H = sm ? 300 : 320, G = sm ? 236 : 262;
+  const bench = B.filter((b) => !F.includes(b)).sort((a, b) => a.id.localeCompare(b.id));
+  const bw = W / bench.length, maxR = Math.max(0.01, ...B.map((b) => Math.abs(b.r10)));
+  const back = bench.map((b, i) => { const h = 50 + (b.r10 / maxR + 1) * 45 + (i % 3) * 8, x = i * bw;
+    return `<rect class="bench" x="${(x + 0.5).toFixed(1)}" y="${G - h}" width="${(bw - 1.5).toFixed(1)}" height="${h}"/><circle cx="${(x + bw / 2).toFixed(1)}" cy="${G - h - 4}" r="1.8" fill="${sigCol(b)}" opacity="${b.pos ? 0.9 : 0.15 + (b.sig?.charge || 0) * 0.5}"/>`; }).join('');
+  const n = Math.max(1, F.length), tw = sm ? 36 : 64, gap = (W - n * tw) / (n + 1), wt = (b, i) => preview ? (n - i) : b.alloc, maxA = Math.max(...F.map(wt), 0.01);
+  const front = F.map((b, i) => {
+    const x = gap + i * (tw + gap), ht = Math.round(80 + (wt(b, i) / maxA) * (sm ? 100 : 120) + Math.max(-30, Math.min(30, (b.equity - b.alloc) / (b.alloc || 1) * 1000))), y = G - ht, col = sigCol(b);
+    let wins = ''; const lit = Math.round((b.sig?.charge || 0) * 10), cols = sm ? 2 : 3, ww = sm ? 8 : 10, cw = (tw - 12) / cols;
+    for (let r = 0, k = 0; y + 12 + r * 15 < G - 8; r++) for (let c = 0; c < cols; c++, k++) wins += `<rect class="win ${k < lit ? 'lit' : ''}" x="${(x + 6 + c * cw + (cw - ww) / 2).toFixed(1)}" y="${y + 12 + r * 15}" width="${ww}" height="7" rx="1"/>`;
+    const beam = b.pos ? `<rect class="beam" x="${x + tw / 2 - 4}" y="0" width="8" height="${y - 8}" fill="${col}"/>` : '';
+    const light = `<circle class="${(b.sig?.charge || 0) > 0.6 ? 'chg' : ''}" cx="${x + tw / 2}" cy="${y - 10}" r="${4 + (b.sig?.charge || 0) * 3}" fill="${col}" opacity="${b.pos ? 1 : 0.25 + (b.sig?.charge || 0) * 0.75}"/>`;
+    const lock = b.lock ? `<text class="sub" x="${x + tw / 2}" y="${y + ht / 2}" style="fill:#e2b93b;font-size:${sm ? 8 : 10}px">${b.lock === 'profit lock' ? 'LOCKED' : 'STOPPED'}</text>` : '';
+    const dd = preview ? b.r10 * 100 : b.equity - b.alloc, fs = sm ? 'style="font-size:10px"' : '';
+    return `<g class="tw" data-ctbot="${b.id}">${beam}<line x1="${x + tw / 2}" y1="${y}" x2="${x + tw / 2}" y2="${y - 5}" stroke="var(--line2)" stroke-width="2"/>${light}<rect class="body" x="${x}" y="${y}" width="${tw}" height="${ht}" rx="3"/>${wins}${lock}
+      <text class="lbl" x="${x + tw / 2}" y="${G + 17}" ${sm ? 'style="font-size:11px"' : ''}>${b.sym}</text><text class="sub" x="${x + tw / 2}" y="${G + 31}" ${fs}>${sname(b)}</text>
+      <text class="sub" x="${x + tw / 2}" y="${G + 45}" ${fs}>${preview ? '#' + b.liveRank : cusd(b.equity)}</text><text class="sub" x="${x + tw / 2}" y="${G + 58}" ${fs}><tspan style="fill:${dd > 0 ? 'var(--up)' : dd < 0 ? 'var(--down)' : 'var(--tx3)'}">${dd >= 0 ? '+' : '−'}${Math.abs(dd).toFixed(preview ? 1 : 3)}${preview ? '%' : ''}</tspan></text></g>`;
   }).join('');
-  $('#ctCity').innerHTML = `<svg viewBox="0 0 ${W} ${H}"><line x1="0" y1="${G}" x2="${W}" y2="${G}" stroke="var(--line2)" stroke-width="2"/>${towers}</svg>`;
-  $('#ctTick').innerHTML = Object.entries(CT.quotes || {}).map(([s, q]) => { const ch = (q.px - q.prev) / q.prev * 100;
-    return `<div><div style="display:flex;justify-content:space-between;gap:6px"><b>${s}</b><span class="num ${cls(ch)}" style="font-size:12px">${cpct(ch)}</span></div><div class="num" style="font-size:13px">${q.px.toFixed(2)}</div>${spark(q.spark, 200, 34, ch >= 0 ? '#4cc38a' : '#e5484d')}</div>`; }).join('');
+  $('#ctCity').innerHTML = `<svg viewBox="0 0 ${W} ${H}"><g opacity=".9">${back}</g><rect x="0" y="${G - 140}" width="${W}" height="140" fill="url(#fog)"/><defs><linearGradient id="fog" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#131417" stop-opacity="0"/><stop offset="1" stop-color="#131417" stop-opacity=".55"/></linearGradient></defs>${front}<line x1="0" y1="${G}" x2="${W}" y2="${G}" stroke="var(--line2)" stroke-width="2"/></svg>`;
+
+  // ---- league ----
+  const L = [...B].sort((a, b) => a.liveRank - b.liveRank), shown = ctLgAll ? L : L.slice(0, 12);
+  $('#ctLgNote').textContent = `ranked on the last ${CT.fund?.window || 10} sessions`;
+  $('#ctCap').textContent = preview ? `Front row = the top ${n} right now. They get the money at the next open. The faded skyline behind is every other bot, trading in practice mode. Beam = bet open.` : 'Front row = the 8 bots holding money today, biggest slice = tallest. The faded skyline behind is every other bot, trading in practice mode. Top light = which way a bot leans (green up, red down), brighter = closer to firing. Beam = bet open.';
+  $('#ctLg').innerHTML = `<div class="lgr h"><span>#</span><span></span><span>Bot</span><span class="r">10 days</span><span class="r">Today</span><span class="r hm">Trades</span></div>` +
+    shown.map((b, i) => `<div class="lgr ${i === 8 ? 'cut' : ''}" data-ctbot="${b.id}"><span class="dim num">${b.liveRank}</span><span class="sdot" style="background:${sigCol(b)};opacity:${b.pos ? 1 : 0.3 + (b.sig?.charge || 0) * 0.7}"></span><span style="min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(b.name)}${b.funded ? `<span class="fund">${cusd(b.alloc)}</span>` : ''}</span><span class="r num ${cls(b.r10)}">${cpct(b.r10 * 100)}</span><span class="r num ${cls(b.today)}">${b.today ? cpct(b.today * 100) : '–'}</span><span class="r num dim hm">${b.n}</span></div>`).join('');
+  $('#ctLgMore').textContent = ctLgAll ? 'Show top 12' : `Show all ${B.length} bots`;
+
+  // ---- tickers ----
+  const Q = Object.entries(CT.quotes || {}), qs = ctTkAll ? Q : Q.slice(0, sm ? 6 : 8);
+  $('#ctTick').innerHTML = qs.map(([s, q]) => { const ch = (q.px - q.prev) / q.prev * 100;
+    return `<div><div style="display:flex;justify-content:space-between;gap:6px"><b>${s}</b><span class="num ${cls(ch)}" style="font-size:12px">${cpct(ch)}</span></div><div class="d">${esc(CT.symInfo?.[s] || '')}</div><div class="num" style="font-size:12.5px">${q.px.toFixed(2)}</div>${spark(q.spark, 200, 26, ch >= 0 ? '#4cc38a' : '#e5484d')}</div>`; }).join('');
+  $('#ctTkMore').textContent = ctTkAll ? 'Show fewer' : `Show all ${Q.length}`;
+  $('#ctTkMore').classList.toggle('hidden', Q.length <= (sm ? 6 : 8));
+
   const eq = (CT.equity || []).map((e) => e.v);
   $('#ctNow').innerHTML = cusd(CT.total, 3);
   $('#ctEq').innerHTML = eq.length > 1 ? `<div style="height:110px">${spark(eq, 700, 110, CT.total >= CT.startCash ? '#4cc38a' : '#e5484d').replace('<svg', '<svg style="width:100%;height:110px"')}</div>` : '<div class="dim" style="font-size:13px;padding:20px 0">The line starts once the bots trade.</div>';
   const nm = Object.fromEntries(B.map((b) => [b.id, b.name]));
-  $('#ctLog').innerHTML = (CT.log || []).slice(0, 40).map((l) => `<div class="ctlog"><span class="dim num">${etTime(l.t * 1000)}</span><span>${esc(nm[l.bot] || l.bot)}</span><span class="${l.kind === 'win' ? 'up' : l.kind === 'loss' ? 'down' : 'mut'}">${esc(l.kind)}${l.why ? ' · ' + esc(l.why) : ''}</span><span class="num ${cls(l.pnl || 0)}">${l.pnl != null ? cusd(l.pnl, 4) : l.px ? '@ ' + l.px.toFixed(2) : ''}</span></div>`).join('') || '<div class="ctlog dim" style="grid-template-columns:1fr">No trades yet. They start at the next market open.</div>';
+  $('#ctLog').innerHTML = (CT.log || []).slice(0, 40).map((l) => `<div class="ctlog"><span class="dim num">${etTime(l.t * 1000)}</span><span>${esc(nm[l.bot] || l.kind)}</span><span class="${l.kind === 'win' ? 'up' : l.kind === 'loss' ? 'down' : 'mut'}">${l.bot ? esc(l.kind) + (l.why ? ' · ' : '') : ''}${esc(l.why || '')}</span><span class="num ${cls(l.pnl || 0)}">${l.pnl != null ? cusd(l.pnl, 4) : l.px ? '@ ' + l.px.toFixed(2) : ''}</span></div>`).join('') || '<div class="ctlog dim" style="grid-template-columns:1fr">No trades yet. They start at the next market open.</div>';
 }
+$('#ctLgMore').onclick = () => { ctLgAll = !ctLgAll; renderCity(); };
+$('#ctTkMore').onclick = () => { ctTkAll = !ctTkAll; renderCity(); };
 function ctBotSheet(id) {
   const b = CT.bots.find((x) => x.id === id); if (!b) return;
-  const p = b.pos, ch = Math.round((b.sig.charge || 0) * 100);
-  $('#stSheetIn').innerHTML = `<div class="sheeth"><h3>${esc(b.name)} <span class="dim" style="font-size:13px;font-weight:400">${b.sym}</span></h3><button class="ibtn" data-close="stSheet">&times;</button></div>
+  const p = b.pos, ch = Math.round((b.sig?.charge || 0) * 100);
+  $('#stSheetIn').innerHTML = `<div class="sheeth"><h3>${esc(b.name)} <span class="dim" style="font-size:13px;font-weight:400">${esc(CT.symInfo?.[b.sym] || '')}</span></h3><button class="ibtn" data-close="stSheet">&times;</button></div>
     <div class="mut" style="font-size:13px">${esc(CT.strats[b.strat] || '')}</div>
-    <div class="kpis" style="grid-template-columns:repeat(3,1fr)"><div class="kpi"><div class="l">Balance</div><div class="v num" style="font-size:18px">${cusd(b.equity, 3)}</div></div><div class="kpi"><div class="l">Today</div><div class="v num ${cls(b.equity - b.dayStart)}" style="font-size:18px">${cusd(b.equity - b.dayStart, 3)}</div></div><div class="kpi"><div class="l">Wins</div><div class="v num" style="font-size:18px">${b.wins}/${b.n}</div></div></div>
-    <div class="fl" style="margin-top:14px">Signal</div><div style="font-size:13px">${b.sig.dir ? `Leaning <b class="${b.sig.dir === 'up' ? 'up' : 'down'}">${b.sig.dir}</b> · ${ch}% charged` : 'Waiting for the market'}${b.sig.why ? ` <span class="dim">· ${esc(b.sig.why)}</span>` : ''}</div>
-    <div class="bar2"><i style="width:${ch}%;background:${b.sig.dir === 'down' ? 'var(--down)' : 'var(--up)'}"></i></div>
+    <div class="kpis" style="grid-template-columns:repeat(3,1fr)"><div class="kpi"><div class="l">Rank</div><div class="v num" style="font-size:18px">#${b.liveRank}<span class="dim" style="font-size:12px"> / ${CT.bots.length}</span></div></div><div class="kpi"><div class="l">10 days</div><div class="v num ${cls(b.r10)}" style="font-size:18px">${cpct(b.r10 * 100)}</div></div><div class="kpi"><div class="l">Today</div><div class="v num ${cls(b.today)}" style="font-size:18px">${cpct(b.today * 100)}</div></div></div>
+    <p style="font-size:13px;margin:12px 0 0">${b.funded ? `<b>Funded today</b> with ${cusd(b.alloc)} (now ${cusd(b.equity, 3)}).` : `<span class="mut">Practice mode today. It trades with no money so it can earn a spot in the top ${CT.fund?.top || 8}.</span>`}</p>
+    <div class="fl" style="margin-top:14px">Signal</div><div style="font-size:13px">${b.sig?.dir ? `Leaning <b class="${b.sig.dir === 'up' ? 'up' : 'down'}">${b.sig.dir}</b> · ${ch}% charged` : 'Waiting for the market'}${b.sig?.why ? ` <span class="dim">· ${esc(b.sig.why)}</span>` : ''}</div>
+    <div class="bar2"><i style="width:${ch}%;background:${b.sig?.dir === 'down' ? 'var(--down)' : 'var(--up)'}"></i></div>
     ${b.lock ? `<p style="font-size:13px;color:#e2b93b">${b.lock === 'profit lock' ? 'Hit the profit lock (+' + CT.lock.up * 100 + '% today), done until tomorrow.' : 'Hit the daily loss limit (' + CT.lock.down * 100 + '%), done until tomorrow.'}</p>` : ''}
-    <div class="fl" style="margin-top:14px">Open bet</div>${p ? `<div class="sumbox" style="white-space:normal"><b class="${p.side === 'up' ? 'up' : 'down'}">${p.side} bet</b> from ${p.entry.toFixed(2)} · now ${p.last.toFixed(2)} · <span class="${cls(p.pnl)}">${cusd(p.pnl, 4)}</span><br><span class="dim">target ${p.target.toFixed(2)} · stop ${p.stop.toFixed(2)} · ${esc(p.why)} · ${etTime(p.at * 1000)}</span></div>` : '<div class="dim" style="font-size:13px">None</div>'}
-    <div class="fl" style="margin-top:14px">Recent trades</div><div class="tbl">${b.trades.map((t) => `<div class="ctlog" style="grid-template-columns:52px 44px 1fr auto"><span class="dim num">${etTime(t.out * 1000)}</span><span class="${t.side === 'up' ? 'up' : 'down'}">${t.side}</span><span class="mut">${t.entry.toFixed(2)} → ${t.exit.toFixed(2)} · ${esc(t.why)}</span><span class="num ${cls(t.pnl)}">${cpct(t.pct)}</span></div>`).join('') || '<div class="ctlog dim" style="grid-template-columns:1fr">No trades yet.</div>'}</div>`;
+    <div class="fl" style="margin-top:14px">Open bet</div>${p ? `<div class="sumbox" style="white-space:normal"><b class="${p.side === 'up' ? 'up' : 'down'}">${p.side} bet</b> from ${p.entry.toFixed(2)} · now ${p.last.toFixed(2)} · <span class="${cls(p.pct)}">${cpct(p.pct)}</span>${p.stake ? ` · <span class="${cls(p.pnl)}">${cusd(p.pnl, 4)}</span>` : ''}<br><span class="dim">target ${p.target.toFixed(2)} · stop ${p.stop.toFixed(2)} · ${esc(p.why)} · ${etTime(p.at * 1000)} ET</span></div>` : '<div class="dim" style="font-size:13px">None</div>'}
+    <div class="fl" style="margin-top:14px">Recent trades</div><div class="tbl">${b.trades.map((t) => `<div class="ctlog" style="grid-template-columns:52px 44px 1fr auto"><span class="dim num">${etTime(t.out * 1000)}</span><span class="${t.side === 'up' ? 'up' : 'down'}">${t.side}</span><span class="mut">${t.entry.toFixed(2)} → ${t.exit.toFixed(2)} · ${esc(t.why)}${t.real ? '' : ' · practice'}</span><span class="num ${cls(t.pct)}">${cpct(t.pct)}</span></div>`).join('') || '<div class="ctlog dim" style="grid-template-columns:1fr">No trades yet.</div>'}</div>`;
   $('#stSheet').classList.add('on');
 }
 document.addEventListener('click', (e) => { const t = e.target.closest('[data-ctbot]'); if (t) ctBotSheet(t.dataset.ctbot); });
