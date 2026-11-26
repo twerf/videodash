@@ -162,7 +162,13 @@ textarea{min-height:96px;resize:vertical}
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .cnt{margin-left:auto;font-family:var(--mono)}
 .cnt.over{color:var(--down)}
-.drop{border:1px dashed var(--line2);border-radius:10px;padding:16px;text-align:center;color:var(--tx2);cursor:pointer}
+.drop{display:block;border:1px dashed var(--line2);border-radius:10px;padding:18px;text-align:center;color:var(--tx2);cursor:pointer}
+.ai{display:flex;align-items:center;gap:10px;margin-top:12px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;cursor:pointer;user-select:none}
+.ai input{width:18px;height:18px;accent-color:#ececee}
+.ai small{display:block;color:var(--tx3);font-size:12px}
+.pending{color:var(--tx2);font-size:12px}
+.prog{height:4px;background:var(--line);border-radius:2px;overflow:hidden;margin-top:8px;display:none}
+.prog i{display:block;height:100%;width:0;background:var(--tx);transition:width .2s}
 .drop.hov{border-color:var(--tx)}
 .acts{display:flex;gap:8px;margin-top:18px;flex-wrap:wrap}
 .toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--tx);color:var(--bg);padding:8px 14px;border-radius:8px;font-weight:500;z-index:50;display:none}
@@ -271,8 +277,11 @@ textarea{min-height:96px;resize:vertical}
 <!-- edit form -->
 <div class="sheet" id="fSheet"><div class="sheetin">
   <div class="sheeth"><h3 id="fHead">New video</h3><button class="ibtn" data-close="fSheet">&times;</button></div>
-  <div class="drop" id="drop">Tap to pick a video, or drop it here<input type="file" id="file" accept="video/*" hidden></div>
+  <input type="file" id="file" accept="video/*,.mp4,.mov" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none">
+  <label class="drop" id="drop" for="file"><span id="dropTxt">Tap to pick a video</span></label>
   <div id="filePrev" class="dim" style="font-size:13px;margin-top:6px"></div>
+  <div class="prog" id="prog"><i></i></div>
+  <label class="ai"><input type="checkbox" id="fAI" checked><span>Write title, caption &amp; hashtags for me<small>Leave the fields blank and they fill in a few minutes after saving, based on the video and what's working on that account.</small></span></label>
   <div class="field"><div class="fl">Title<span class="cnt" id="cTitle"></span></div><input type="text" id="fTitle" placeholder="YouTube title / hook"></div>
   <div class="field"><div class="fl">Caption<span class="cnt" id="cDesc"></span></div><textarea id="fDesc" placeholder="caption text"></textarea></div>
   <div class="field"><div class="fl">Hashtags</div><input type="text" id="fTags" placeholder="moviecore core fyp"></div>
@@ -368,14 +377,21 @@ async function api(url, opt = {}) {
     return { ok: true };
   }
   if (p === '/api/upload') {
-    const f = opt.body, id = uid();
-    if (f.size > 95e6) throw new Error('video is over 95MB - GitHub limit is 100MB');
-    const blob = await gh('/git/blobs', { method: 'POST', body: JSON.stringify({ content: await fileB64(f), encoding: 'base64' }) });
-    const tree = await gh('/git/trees', { method: 'POST', body: JSON.stringify({ tree: [{ path: f.name.replace(/[^\w.\- ]+/g, '_') || 'video.mp4', mode: '100644', type: 'blob', sha: blob.sha }] }) });
+    const f = opt.body, id = uid(), CH = 12 * 1024 * 1024, n = Math.ceil(f.size / CH) || 1;
+    if (f.size > 600e6) throw new Error('video is over 600MB - export a smaller version');
+    const parts = [];
+    for (let i = 0; i < n; i++) {
+      const b64 = await fileB64(f.slice(i * CH, Math.min(f.size, (i + 1) * CH)));
+      let blob, tries = 0;
+      while (true) { try { blob = await gh('/git/blobs', { method: 'POST', body: JSON.stringify({ content: b64, encoding: 'base64' }) }); break; } catch (e) { if (++tries > 3 || e.message === 'bad key') throw e; await new Promise((r) => setTimeout(r, 1500 * tries)); } }
+      parts.push(blob.sha); opt.onProgress?.((i + 1) / n);
+    }
+    const name = f.name.replace(/[^\w.\- ]+/g, '_') || 'video.mp4';
+    const tree = await gh('/git/trees', { method: 'POST', body: JSON.stringify({ tree: parts.map((sha, i) => ({ path: n > 1 ? `${name}.part${String(i).padStart(3, '0')}` : name, mode: '100644', type: 'blob', sha })) }) });
     const commit = await gh('/git/commits', { method: 'POST', body: JSON.stringify({ message: 'media ' + f.name, tree: tree.sha, parents: [] }) });
     const branch = 'media-' + id;
     await gh('/git/refs', { method: 'POST', body: JSON.stringify({ ref: 'refs/heads/' + branch, sha: commit.sha }) });
-    return { file: { sha: blob.sha, branch, name: f.name, size: f.size, type: f.type || 'video/mp4' } };
+    return { file: { sha: parts[0], parts: n > 1 ? parts : undefined, branch, name: f.name, size: f.size, type: f.type || 'video/mp4' } };
   }
   if (p === '/api/accounts') {
     const list = JSON.parse(opt.body).map((a) => ({ id: a.id || `${a.platform === 'youtube' ? 'yt' : 'tt'}-${String(a.handle).replace(/^@/, '')}`, platform: a.platform, handle: String(a.handle).replace(/^@/, ''), color: a.color || '#ffffff' }));
@@ -603,8 +619,8 @@ function renderQueue() {
     return `<div class="qgroup"><div class="sech"><h2>${label}</h2><span class="dim num">${items.length}</span></div><div class="tbl">` + items.map((q) => {
       const done = Object.keys(q.postedTo || {}).length, tot = (q.accounts || []).length;
       return `<div class="tr qrow" data-id="${q.id}"><span class="dot ${q.status}"></span>
-        <div style="min-width:0"><div class="qt">${esc(q.title || (q.description || '').split('\n')[0]) || '<span class="dim">Untitled</span>'}</div>
-        <div class="qm">${(q.accounts || []).map((id) => '@' + esc(acct(id).handle)).join(', ') || 'no accounts picked'}${tot && st !== 'posted' && done ? ` · ${done}/${tot} posted` : ''}${q.file ? '' : ' · no video'}</div></div>
+        <div style="min-width:0"><div class="qt">${esc(q.title || (q.description || '').split('\n')[0]) || `<span class="dim">${q.autofill === 'pending' ? 'New video' : 'Untitled'}</span>`}</div>
+        <div class="qm">${q.autofill === 'pending' ? '<span class="pending">Writing caption… · </span>' : ''}${(q.autofill || '').startsWith('failed') ? '<span class="down">Caption failed · </span>' : ''}${(q.accounts || []).map((id) => '@' + esc(acct(id).handle)).join(', ') || 'no accounts picked'}${tot && st !== 'posted' && done ? ` · ${done}/${tot} posted` : ''}${q.file ? '' : ' · no video'}</div></div>
         <span class="qwhen">${q.when ? whenFmt(q.when) : ''}</span><span class="chev">›</span></div>`;
     }).join('') + '</div></div>';
   }).join('');
@@ -620,6 +636,8 @@ function openItem(id) {
   $('#qSheetIn').innerHTML = `
     <div class="sheeth"><span class="dot ${q.status}"></span><h3>${esc(q.title) || 'Untitled'}</h3><button class="ibtn" data-close="qSheet">&times;</button></div>
     ${q.file ? `<div id="vbox"><div class="vload" data-act="load"><span>Tap to load video</span><span class="dim" style="font-size:12px">${(q.file.size / 1e6).toFixed(1)} MB</span></div></div>` : '<div class="dim" style="font-size:13px">No video attached</div>'}
+    ${q.autofill === 'pending' ? '<div class="note" style="margin-top:12px">Writing the caption and hashtags… this updates by itself in a few minutes.</div>' : ''}
+    ${(q.autofill || '').startsWith('failed') ? `<div class="err">Auto caption failed: ${esc(q.autofill.slice(8))}</div>` : ''}
     <button class="btn pri" data-copy="all" style="width:100%;margin-top:14px">Copy caption + hashtags</button>
     ${q.title ? `<div class="field"><div class="fl">Title<span class="sp"></span><button class="copyb" data-copy="title">Copy</button></div><div class="box">${esc(q.title)}</div></div>` : ''}
     <div class="field"><div class="fl">Caption<span class="sp"></span><button class="copyb" data-copy="desc">Copy</button></div><div class="box">${esc(q.description) || '<span class="dim">empty</span>'}</div></div>
@@ -627,7 +645,8 @@ function openItem(id) {
     <div class="field"><div class="fl">Posted to</div><div class="dests">${(q.accounts || []).map((aid) => { const t = (q.postedTo || {})[aid]; return `<div class="dest ${t ? 'done' : ''}" data-dest="${aid}"><span class="cb"></span>@${esc(acct(aid).handle)} <span class="dim">${plat(acct(aid).platform)}</span><span class="when">${t ? ago(t) + ' ago' : 'tap when posted'}</span></div>`; }).join('') || '<div class="dest dim">No accounts picked</div>'}</div></div>
     ${q.when ? `<div class="field"><div class="fl">Planned</div><div>${whenFmt(q.when)}</div></div>` : ''}
     ${q.notes ? `<div class="field"><div class="fl">Notes</div><div class="mut">${esc(q.notes)}</div></div>` : ''}
-    <div class="acts">${q.file ? '<button class="btn" data-act="save">Save video</button>' : ''}<button class="btn" data-act="edit">Edit</button><button class="btn danger" data-act="del">Delete</button></div>`;
+    ${q.aiNote ? `<div class="note">Why this caption: ${esc(q.aiNote)}</div>` : ''}
+    <div class="acts">${q.file ? '<button class="btn" data-act="save">Save video</button>' : ''}<button class="btn" data-act="edit">Edit</button>${q.file && q.autofill !== 'pending' ? '<button class="btn" data-act="rewrite">Rewrite caption</button>' : ''}<button class="btn danger" data-act="del">Delete</button></div>`;
   $('#qSheet').classList.add('on');
 }
 $('#qSheetIn').onclick = async (e) => {
@@ -660,6 +679,10 @@ $('#qSheetIn').onclick = async (e) => {
     btn.textContent = 'Save video';
   }
   if (act === 'edit') { closeSheet('qSheet'); openForm(q); }
+  if (act === 'rewrite') {
+    Object.assign(q, { autofill: 'pending', autofillForce: true }); openItem(q.id); renderQueue();
+    try { await api('/api/queue', { method: 'POST', body: JSON.stringify({ id: q.id, autofill: 'pending', autofillForce: true }) }); toast('Rewriting… takes a few minutes'); } catch (err) { toast('Failed: ' + err.message); }
+  }
   if (act === 'del' && confirm('Delete this video from the queue?')) {
     closeSheet('qSheet'); S.queue = S.queue.filter((x) => x.id !== q.id); renderQueue();
     try { await api('/api/queue/' + q.id, { method: 'DELETE' }); toast('Deleted'); } catch (err) { toast('Delete failed: ' + err.message); load(); }
@@ -668,7 +691,7 @@ $('#qSheetIn').onclick = async (e) => {
 
 const videoCache = {};
 async function videoBlob(file) {
-  if (!videoCache[file.sha]) videoCache[file.sha] = gh(`/git/blobs/${file.sha}`, {}, 'blob').then((b) => new Blob([b], { type: file.type || 'video/mp4' })).catch((e) => { delete videoCache[file.sha]; throw e; });
+  if (!videoCache[file.sha]) videoCache[file.sha] = (async () => { const out = []; for (const sha of file.parts || [file.sha]) out.push(await gh(`/git/blobs/${sha}`, {}, 'blob')); return new Blob(out, { type: file.type || 'video/mp4' }); })().catch((e) => { delete videoCache[file.sha]; throw e; });
   return videoCache[file.sha];
 }
 
@@ -680,7 +703,8 @@ function openForm(q = null) {
   const chosen = q ? (q.accounts || []) : (F !== 'all' ? [F] : []);
   $('#fAccts').innerHTML = S.accounts.map((a) => `<span class="pick ${chosen.includes(a.id) ? 'on' : ''}" data-a="${a.id}">@${esc(a.handle)} <span style="opacity:.6">${plat(a.platform)}</span></span>`).join('');
   $('#filePrev').textContent = q?.file ? 'Current: ' + q.file.name : '';
-  $('#drop').firstChild.textContent = q?.file ? 'Tap to replace the video' : 'Tap to pick a video, or drop it here';
+  $('#dropTxt').textContent = q?.file ? 'Tap to replace the video' : 'Tap to pick a video';
+  $('#fAI').checked = !q || q.autofill !== 'done'; $('#prog').style.display = 'none';
   counts(); $('#fSheet').classList.add('on');
 }
 $('#fAccts').onclick = (e) => e.target.closest('.pick')?.classList.toggle('on');
@@ -690,8 +714,7 @@ function counts() {
   $('#cDesc').textContent = cap + '/2200'; $('#cDesc').className = 'cnt' + (cap > 2200 ? ' over' : '');
 }
 ['#fTitle', '#fDesc', '#fTags'].forEach((s) => $(s).addEventListener('input', counts));
-function pickFile(f) { if (!f) return; pendingFile = f; $('#filePrev').textContent = `${f.name} · ${(f.size / 1e6).toFixed(1)} MB`; }
-$('#drop').onclick = () => $('#file').click();
+function pickFile(f) { if (!f) return; pendingFile = f; $('#filePrev').textContent = `${f.name} · ${(f.size / 1e6).toFixed(1)} MB`; $('#dropTxt').textContent = 'Tap to pick a different video'; }
 $('#file').onchange = (e) => pickFile(e.target.files[0]);
 ['dragover', 'dragenter'].forEach((ev) => $('#drop').addEventListener(ev, (e) => { e.preventDefault(); $('#drop').classList.add('hov'); }));
 ['dragleave', 'drop'].forEach((ev) => $('#drop').addEventListener(ev, (e) => { e.preventDefault(); $('#drop').classList.remove('hov'); }));
@@ -701,15 +724,20 @@ $('#fSave').onclick = async () => {
   const btn = $('#fSave'); btn.disabled = true; $('#fErr').textContent = '';
   try {
     let file = editing?.file || null;
-    if (pendingFile) { btn.textContent = 'Uploading… keep this open'; file = (await api('/api/upload?name=' + encodeURIComponent(pendingFile.name), { method: 'POST', body: pendingFile })).file; }
+    if (pendingFile) {
+      btn.textContent = 'Uploading… keep this open'; $('#prog').style.display = 'block';
+      file = (await api('/api/upload?name=' + encodeURIComponent(pendingFile.name), { method: 'POST', body: pendingFile, onProgress: (x) => { $('#prog i').style.width = (x * 100).toFixed(0) + '%'; btn.textContent = `Uploading ${(x * 100).toFixed(0)}%…`; } })).file;
+    }
     btn.textContent = 'Saving…';
     const item = { title: $('#fTitle').value.trim(), description: $('#fDesc').value.trim(), hashtags: parseTags($('#fTags').value).join(' '),
       accounts: $$('#fAccts .pick.on').map((p) => p.dataset.a), when: $('#fWhen').value, status: $('#fStatus').value, notes: $('#fNotes').value.trim(), file };
     if (editing) item.id = editing.id;
+    const blank = !item.title || !item.description || !item.hashtags;
+    if ($('#fAI').checked && file && blank && (!editing || pendingFile || editing.autofill !== 'done')) item.autofill = 'pending';
     await api('/api/queue', { method: 'POST', body: JSON.stringify(item) });
     closeSheet('fSheet'); toast('Saved'); await load();
   } catch (e) { $('#fErr').textContent = e.message; }
-  btn.disabled = false; btn.textContent = 'Save';
+  btn.disabled = false; btn.textContent = 'Save'; $('#prog').style.display = 'none'; $('#prog i').style.width = '0';
 };
 
 // ---------- settings ----------
@@ -756,6 +784,10 @@ addEventListener('resize', () => S && view === 'stats' && drawChart());
 if (location.hash === '#queue') setView('queue');
 if (TOKEN) load(); else logout();
 setInterval(() => TOKEN && !runPoll && document.visibilityState === 'visible' && load(), 5 * 60000);
+setInterval(async () => {
+  if (!TOKEN || !S || document.visibilityState !== 'visible' || !S.queue.some((q) => q.autofill === 'pending')) return;
+  try { const q = await getJson('queue.json', []); const was = JSON.stringify(S.queue); S.queue = q; if (JSON.stringify(q) !== was) { renderQueue(); if (openId) openItem(openId); } } catch {}
+}, 20000);
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && S && Date.now() - (load.t || 0) > 60000) { load.t = Date.now(); load(); } });
 </script>
 </body>
