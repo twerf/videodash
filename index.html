@@ -356,6 +356,10 @@ textarea{min-height:96px;resize:vertical}
     <div class="stline"><span class="dot" id="ctDot"></span><span id="ctLine">Loading city...</span></div>
     <div class="kpis" id="ctKpis"></div>
     <div class="sec"><div class="cty" id="ctCity"></div><div class="dim" style="font-size:12px;margin-top:6px" id="ctCap"></div></div>
+    <div class="sec hidden" id="ctMir"><div class="sech"><h2>Mirror lane</h2><span class="dim" style="font-size:12px">1-day options on Alpaca paper · fake $100k</span></div>
+      <div class="kpis" id="ctMirK" style="margin-top:0"></div>
+      <div class="dim" style="font-size:12.5px;margin:8px 0" id="ctMirCmp"></div>
+      <div class="tbl" id="ctMirT"></div></div>
     <div class="sec"><div class="sech"><h2>League</h2><span class="dim" style="font-size:12px" id="ctLgNote"></span></div><div class="lg" id="ctLg"></div><button class="more" id="ctLgMore"></button></div>
     <div class="sec"><div class="chart"><div class="charth"><span class="mut" style="font-size:13px">Balance</span><span class="num" id="ctNow" style="font-size:13px"></span></div><div id="ctEq"></div></div><div class="sumbox" id="ctOpt" style="margin-top:8px;white-space:normal;font-size:13px"></div><div class="tbl hidden" id="ctDays" style="margin-top:8px"></div></div>
     <div class="sec"><div class="sech"><h2>Tickers</h2></div><div class="tks" id="ctTick"></div><button class="more" id="ctTkMore"></button></div>
@@ -1204,12 +1208,24 @@ function renderCity() {
   const dys = (CT.days || []).slice().reverse();
   $('#ctDays').classList.toggle('hidden', !dys.length);
   $('#ctDays').innerHTML = dys.map((d) => `<div class="ctlog" style="grid-template-columns:96px 1fr auto"><span class="dim num">${esc(d.d)}</span><span class="mut">${cusd(d.start)} → ${cusd(d.end)}</span><span class="num ${cls(d.ret)}">${cpct(d.ret * 100)}</span></div>`).join('');
+  renderMirror();
   const ot = CT.optTotal;
   $('#ctOpt').classList.toggle('hidden', ot == null);
   if (ot != null) $('#ctOpt').innerHTML = `<b>If these were options (estimate):</b> <span class="num ${cls(ot - CT.startCash)}">${cusd(ot)}</span> <span class="dim">· same bets as 1-day-to-expiry options, priced with a simple model and bid/ask costs. Not real, never affects the bots. In testing this version lost 10-40% because options amplify the losers too.</span>`;
   $('#ctEq').innerHTML = eq.length > 1 ? `<div style="height:110px">${spark(eq, 700, 110, CT.total >= CT.startCash ? '#4cc38a' : '#e5484d').replace('<svg', '<svg style="width:100%;height:110px"')}</div>` : '<div class="dim" style="font-size:13px;padding:20px 0">The line starts once the bots trade.</div>';
   const nm = Object.fromEntries(B.map((b) => [b.id, b.name]));
   $('#ctLog').innerHTML = (CT.log || []).slice(0, 40).map((l) => `<div class="ctlog"><span class="dim num">${etTime(l.t * 1000)}</span><span>${esc(nm[l.bot] || l.kind)}</span><span class="${l.kind === 'win' ? 'up' : l.kind === 'loss' ? 'down' : 'mut'}">${l.bot ? esc(l.kind) + (l.why ? ' · ' : '') : ''}${esc(l.why || '')}</span><span class="num ${cls(l.pnl || 0)}">${l.pnl != null ? cusd(l.pnl, 4) : l.px ? '@ ' + l.px.toFixed(2) : ''}</span></div>`).join('') || '<div class="ctlog dim" style="grid-template-columns:1fr">No trades yet. They start at the next market open.</div>';
+}
+function renderMirror() {
+  const M = CT?.mirror; $('#ctMir').classList.toggle('hidden', !M || M.startEq == null); if (!M || M.startEq == null) return;
+  const money = (n) => '$' + Math.round(n).toLocaleString();
+  $('#ctMirK').innerHTML = [['Balance (paper)', money(M.equity)], ['Today', `<span class="${cls(M.today)}">${cpct(M.today * 100)}</span>`], ['Since start', `<span class="${cls(M.total)}">${cpct(M.total * 100)}</span>`], ['Trades', `${M.n}<span class="dim" style="font-size:14px"> · ${M.wins} won</span>`]]
+    .map(([l, v]) => `<div class="kpi"><div class="l">${l}</div><div class="v num">${v}</div></div>`).join('');
+  const bots = CT.total / CT.startCash - 1, opt = CT.optTotal != null ? CT.optTotal / CT.startCash - 1 : null;
+  $('#ctMirCmp').innerHTML = `Same stretch-ish: mirror <b class="${cls(M.total)}">${cpct(M.total * 100)}</b> · day bots <span class="${cls(bots)}">${cpct(bots * 100)}</span>${opt != null ? ` · options estimate <span class="${cls(opt)}">${cpct(opt * 100)}</span>` : ''}${M.spy != null ? ` · SPY <span class="${cls(M.spy)}">${cpct(M.spy * 100)}</span>` : ''}${M.avgSpread != null ? ` · avg bid/ask spread ${(M.avgSpread * 100).toFixed(1)}%` : ''}${M.locked ? ` · <span style="color:#e2b93b">${esc(M.locked)}</span>` : ''}${M.err ? ` · <span class="down">${esc(M.err)}</span>` : ''}`;
+  const rows = [...(M.open || []).map((p) => `<div class="ctlog" style="grid-template-columns:52px 1fr auto"><span class="dim">open</span><span>${esc(p.qty + 'x ' + p.sym)} <span class="dim">· ${esc(p.why || '')}</span></span><span class="num ${cls(p.pct)}">${cpct(p.pct)}</span></div>`),
+    ...(M.trades || []).slice(0, 12).map((t) => `<div class="ctlog" style="grid-template-columns:52px 1fr auto"><span class="dim num">${etTime(t.out)}</span><span>${esc(t.qty + 'x ' + t.sym)} <span class="dim">· ${esc(t.why || '')}</span></span><span class="num ${cls(t.pnl)}">${t.pnl >= 0 ? '+' : '−'}$${Math.abs(t.pnl).toFixed(0)} · ${cpct(t.pct)}</span></div>`)];
+  $('#ctMirT').innerHTML = rows.join('') || '<div class="ctlog dim" style="grid-template-columns:1fr">No option trades yet. It trades when the trend / opening-range signals fire on QQQ, SPY or IWM.</div>';
 }
 $('#ctLgMore').onclick = () => { ctLgAll = !ctLgAll; renderCity(); };
 $('#ctTkMore').onclick = () => { ctTkAll = !ctTkAll; renderCity(); };
