@@ -360,7 +360,7 @@ textarea{min-height:96px;resize:vertical}
     <div class="sec"><div class="chart"><div class="charth"><span class="mut" style="font-size:13px">Balance</span><span class="num" id="ctNow" style="font-size:13px"></span></div><div id="ctEq"></div></div></div>
     <div class="sec"><div class="sech"><h2>Tickers</h2></div><div class="tks" id="ctTick"></div><button class="more" id="ctTkMore"></button></div>
     <div class="sec"><div class="sech"><h2>Activity</h2><span class="dim" style="font-size:12px">funded bots · times in ET</span></div><div class="tbl" id="ctLog"></div></div>
-    <p class="dim" style="font-size:12.5px;margin-top:18px">Practice money only. Prices are real (1-minute bars, US market hours) and the bots run on GitHub (twerf/city-bots), so the laptop can be off. Each morning every bot is ranked on its last 10 sessions and the money goes to the top 8: #1 gets the biggest slice, #8 the smallest. "Up bet" is like a call and "down bet" like a put, but these are plain fractional positions with no leverage.</p>
+    <p class="dim" style="font-size:12.5px;margin-top:18px">Practice money only. Prices are real (1-minute bars, US market hours) and the bots run on GitHub (twerf/city-bots), so the laptop can be off. Each morning every bot is ranked on its last 10 sessions (steadier wins rank higher) and the money goes to the top 8: #1 gets the biggest slice, #8 the smallest. Bots only open new bets 9:45-11:15 ET, and every trade pays slippage and fees. "Up bet" is like a call and "down bet" like a put, but these are plain fractional positions with no leverage.</p>
     <div class="acts"><button class="btn danger" id="ctReset">Reset to $20</button></div>
   </section>
 
@@ -1148,10 +1148,10 @@ function spark(arr, w = 200, h = 34, col) {
 }
 let ctLgAll = false, ctTkAll = false;
 const sigCol = (b) => b.pos ? (b.pos.side === 'up' ? 'var(--up)' : 'var(--down)') : b.sig?.dir === 'up' ? 'var(--up)' : b.sig?.dir === 'down' ? 'var(--down)' : 'var(--tx3)';
-const sname = (b) => ({ trend: 'Trend', og: 'OG', fade: 'Fade' })[b.strat] || b.strat;
+const sname = (b) => CT?.snames?.[b.strat] || ({ trend: 'Trend', og: 'OG', fade: 'Fade' })[b.strat] || b.strat;
 function renderCity() {
   if (!CT) { $('#ctLine').textContent = 'No city data yet.'; return; }
-  if (CT.v !== 2) { $('#ctLine').textContent = 'Waiting for the bots to publish the new format...'; return; }
+  if (!(CT.v >= 2)) { $('#ctLine').textContent = 'Waiting for the bots to publish the new format...'; return; }
   const open = CT.open && Date.now() < CT.closeAt, fresh = Date.now() - CT.at < 5 * 60000;
   $('#ctDot').classList.toggle('on', open && fresh);
   $('#ctLine').innerHTML = open && !fresh ? `Runner quiet for ${ago(CT.at)} · GitHub sometimes starts runs late, it picks back up on its own`
@@ -1217,7 +1217,7 @@ function ctBotSheet(id) {
     <div class="fl" style="margin-top:14px">Signal</div><div style="font-size:13px">${b.sig?.dir ? `Leaning <b class="${b.sig.dir === 'up' ? 'up' : 'down'}">${b.sig.dir}</b> · ${ch}% charged` : 'Waiting for the market'}${b.sig?.why ? ` <span class="dim">· ${esc(b.sig.why)}</span>` : ''}</div>
     <div class="bar2"><i style="width:${ch}%;background:${b.sig?.dir === 'down' ? 'var(--down)' : 'var(--up)'}"></i></div>
     ${b.lock ? `<p style="font-size:13px;color:#e2b93b">${b.lock === 'profit lock' ? 'Hit the profit lock (+' + CT.lock.up * 100 + '% today), done until tomorrow.' : 'Hit the daily loss limit (' + CT.lock.down * 100 + '%), done until tomorrow.'}</p>` : ''}
-    <div class="fl" style="margin-top:14px">Open bet</div>${p ? `<div class="sumbox" style="white-space:normal"><b class="${p.side === 'up' ? 'up' : 'down'}">${p.side} bet</b> from ${p.entry.toFixed(2)} · now ${p.last.toFixed(2)} · <span class="${cls(p.pct)}">${cpct(p.pct)}</span>${p.stake ? ` · <span class="${cls(p.pnl)}">${cusd(p.pnl, 4)}</span>` : ''}<br><span class="dim">target ${p.target.toFixed(2)} · stop ${p.stop.toFixed(2)} · ${esc(p.why)} · ${etTime(p.at * 1000)} ET</span></div>` : '<div class="dim" style="font-size:13px">None</div>'}
+    <div class="fl" style="margin-top:14px">Open bet</div>${p ? `<div class="sumbox" style="white-space:normal"><b class="${p.side === 'up' ? 'up' : 'down'}">${p.side} bet</b> from ${p.entry.toFixed(2)} · now ${p.last.toFixed(2)} · <span class="${cls(p.pct)}">${cpct(p.pct)}</span>${p.stake ? ` · <span class="${cls(p.pnl)}">${cusd(p.pnl, 4)}</span>` : ''}<br><span class="dim">${p.target != null ? 'target ' + p.target.toFixed(2) : 'no fixed target (trailing)'} · stop ${p.stop.toFixed(2)} · ${esc(p.why)} · ${etTime(p.at * 1000)} ET</span></div>` : '<div class="dim" style="font-size:13px">None</div>'}
     <div class="fl" style="margin-top:14px">Recent trades</div><div class="tbl">${b.trades.map((t) => `<div class="ctlog" style="grid-template-columns:52px 44px 1fr auto"><span class="dim num">${etTime(t.out * 1000)}</span><span class="${t.side === 'up' ? 'up' : 'down'}">${t.side}</span><span class="mut">${t.entry.toFixed(2)} → ${t.exit.toFixed(2)} · ${esc(t.why)}${t.real ? '' : ' · practice'}</span><span class="num ${cls(t.pct)}">${cpct(t.pct)}</span></div>`).join('') || '<div class="ctlog dim" style="grid-template-columns:1fr">No trades yet.</div>'}</div>`;
   $('#stSheet').classList.add('on');
 }
