@@ -347,7 +347,7 @@ textarea{min-height:96px;resize:vertical}
     <div class="tick3" id="ctTick"></div>
     <div class="sec"><div class="chart"><div class="charth"><span class="mut" style="font-size:13px">Balance</span><span class="num" id="ctNow" style="font-size:13px"></span></div><div id="ctEq"></div></div></div>
     <div class="sec"><div class="sech"><h2>Activity</h2><span class="dim" style="font-size:12px">times in ET</span></div><div class="tbl" id="ctLog"></div></div>
-    <p class="dim" style="font-size:12.5px;margin-top:18px">Practice money only. Prices are real (1-minute bars, US market hours) and the bots run on the laptop inside Agent Studio, so they only trade while it's on. "Up bet" works like a call and "down bet" like a put, but these are fractional ETF positions with no leverage. Real options cost more than $20 per contract.</p>
+    <p class="dim" style="font-size:12.5px;margin-top:18px">Practice money only. Prices are real (1-minute bars, US market hours). The bots run on GitHub (twerf/city-bots), so the laptop can be off. "Up bet" works like a call and "down bet" like a put, but these are fractional ETF positions with no leverage. Real options cost more than $20 per contract.</p>
     <div class="acts"><button class="btn danger" id="ctReset">Reset to $20</button></div>
   </section>
 
@@ -1061,8 +1061,14 @@ const cusd = (n, d = 2) => (n < 0 ? '−$' : '$') + Math.abs(n).toFixed(d);
 const cpct = (n) => (n > 0 ? '+' : n < 0 ? '−' : '') + Math.abs(n).toFixed(2) + '%';
 const cls = (n) => n > 0 ? 'up' : n < 0 ? 'down' : 'mut';
 const etTime = (t) => new Date(t).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', timeZone: 'America/New_York' });
+const CITY = 'https://api.github.com/repos/twerf/city-bots/contents';
+async function cityFetch(path, opt = {}) {
+  const r = await fetch(`${CITY}/${path}`, { ...opt, headers: { ...(TOKEN ? { Authorization: `Bearer ${TOKEN}` } : {}), Accept: 'application/vnd.github.raw+json', ...(opt.headers || {}) } });
+  if (!r.ok) { const e = new Error('GitHub ' + r.status); e.status = r.status; throw e; }
+  return r.json();
+}
 async function loadCity() {
-  try { CT = await getJson('city.json', null); renderCity(); }
+  try { CT = await cityFetch(`city.json?ref=live&t=${Date.now()}`); renderCity(); }
   catch (e) { $('#ctLine').textContent = 'Could not load city: ' + e.message; }
 }
 function spark(arr, w = 200, h = 34, col) {
@@ -1073,11 +1079,11 @@ function spark(arr, w = 200, h = 34, col) {
 }
 function renderCity() {
   if (!CT) { $('#ctLine').textContent = 'No city data yet. Agent Studio on the laptop pushes it once it runs.'; return; }
-  const online = Date.now() - CT.at < (CT.open ? 5 : 40) * 60000;
-  $('#ctDot').classList.toggle('on', online && CT.open);
-  $('#ctLine').innerHTML = !online ? `Laptop offline · last seen ${ago(CT.at)} ago. Bots only trade while Agent Studio runs.`
-    : CT.open ? `Market open · bots trading · closes ${etTime(CT.closeAt)} ET · synced ${ago(CT.at) === 'now' ? 'just now' : ago(CT.at) + ' ago'}`
-    : `Market closed · bots wait for the next open (9:30 ET)${CT.err ? ' · ' + esc(CT.err) : ''}`;
+  const open = CT.open && Date.now() < CT.closeAt, fresh = Date.now() - CT.at < 5 * 60000;
+  $('#ctDot').classList.toggle('on', open && fresh);
+  $('#ctLine').innerHTML = open && !fresh ? `Runner quiet for ${ago(CT.at)} · GitHub sometimes starts runs late, it picks back up on its own`
+    : open ? `Market open · bots trading on GitHub · closes ${etTime(CT.closeAt)} ET · synced ${ago(CT.at) === 'now' ? 'just now' : ago(CT.at) + ' ago'}`
+    : `Market closed · bots start again at the next open (9:30 ET weekdays)${CT.err ? ' · ' + esc(CT.err) : ''}`;
   const B = CT.bots, day = B.reduce((a, b) => a + b.equity - b.dayStart, 0), all = CT.total - CT.startCash;
   const n = B.reduce((a, b) => a + b.n, 0), w = B.reduce((a, b) => a + b.wins, 0);
   $('#ctKpis').innerHTML = [['Balance (fake)', cusd(CT.total)], ['Today', `<span class="${cls(day)}">${cusd(day, 3)}</span>`], ['All time', `<span class="${cls(all)}">${cpct(all / CT.startCash * 100)}</span>`], ['Win rate', n ? Math.round(w / n * 100) + '% <span class="dim" style="font-size:13px">of ' + n + '</span>' : '–']]
@@ -1119,7 +1125,14 @@ function ctBotSheet(id) {
   $('#stSheet').classList.add('on');
 }
 document.addEventListener('click', (e) => { const t = e.target.closest('[data-ctbot]'); if (t) ctBotSheet(t.dataset.ctbot); });
-$('#ctReset').onclick = async () => { if (!confirm('Wipe all practice trades and start again at $20?')) return; await sendOrder({ type: 'cityreset' }); toast('Sent. Resets within a minute if the laptop is on.'); };
+$('#ctReset').onclick = async () => {
+  if (!confirm('Wipe all practice trades and start again at $20?')) return;
+  try {
+    let sha; try { sha = (await cityFetch(`reset.json?ref=main&t=${Date.now()}`, { headers: { Accept: 'application/vnd.github+json' } })).sha; } catch (e) { if (e.status !== 404) throw e; }
+    await cityFetch('reset.json', { method: 'PUT', headers: { Accept: 'application/vnd.github+json', 'Content-Type': 'application/json' }, body: JSON.stringify({ message: 'reset from phone', content: b64enc(JSON.stringify({ at: Date.now() })), sha, branch: 'main' }) });
+    toast('Reset sent. It kicks in within 5 min while the market is open, or at the next open.');
+  } catch (e) { toast(e.status === 403 || e.status === 404 ? 'Your token can\'t write to twerf/city-bots. Give it access to that repo, then try again.' : 'Reset failed: ' + e.message); }
+};
 setInterval(() => TOKEN && view === 'city' && document.visibilityState === 'visible' && loadCity(), 20000);
 addEventListener('resize', () => CT && view === 'city' && renderCity());
 
