@@ -277,7 +277,7 @@ textarea{min-height:96px;resize:vertical}
 .cty .chg{animation:cg 1.6s ease-in-out infinite alternate}@keyframes cg{from{opacity:.4}to{opacity:1}}
 .lg{border:1px solid var(--line);border-radius:10px;background:var(--s1);overflow:hidden}
 .lgr{display:grid;grid-template-columns:28px 10px 1fr 64px 64px 56px;gap:10px;align-items:center;padding:8px 12px;border-top:1px solid var(--line);font-size:13px;cursor:pointer}
-.lgr:first-child{border-top:0;cursor:default}.lgr.h{font-size:11.5px;color:var(--tx3);text-transform:uppercase;letter-spacing:.04em}
+.lgr:first-child{border-top:0;cursor:default}.lgr.h{white-space:nowrap;font-size:11.5px;color:var(--tx3);text-transform:uppercase;letter-spacing:.04em}
 .lgr:not(.h):hover{background:var(--s2)}.lgr .r{text-align:right}
 .lgr.cut{border-top:1px dashed var(--line2)}
 .sdot{width:8px;height:8px;border-radius:50%;background:var(--line2)}
@@ -1111,7 +1111,7 @@ function renderCity() {
     .map(([l, v]) => `<div class="kpi"><div class="l">${l}</div><div class="v num">${v}</div></div>`).join('');
 
   // ---- skyline ----
-  const sm = innerWidth < 600, W = sm ? 380 : 760, H = sm ? 300 : 320, G = sm ? 236 : 262;
+  const sm = innerWidth < 600, W = sm ? 380 : 760, G = sm ? 236 : 262, H = G + 66;
   const bench = B.filter((b) => !F.includes(b)).sort((a, b) => a.id.localeCompare(b.id));
   const bw = W / bench.length, maxR = Math.max(0.01, ...B.map((b) => Math.abs(b.r10)));
   const back = bench.map((b, i) => { const h = 50 + (b.r10 / maxR + 1) * 45 + (i % 3) * 8, x = i * bw;
@@ -1135,7 +1135,7 @@ function renderCity() {
   const L = [...B].sort((a, b) => a.liveRank - b.liveRank), shown = ctLgAll ? L : L.slice(0, 12);
   $('#ctLgNote').textContent = `ranked on the last ${CT.fund?.window || 10} sessions`;
   $('#ctCap').textContent = preview ? `Front row = the top ${n} right now. They get the money at the next open. The faded skyline behind is every other bot, trading in practice mode. Beam = bet open.` : 'Front row = the 8 bots holding money today, biggest slice = tallest. The faded skyline behind is every other bot, trading in practice mode. Top light = which way a bot leans (green up, red down), brighter = closer to firing. Beam = bet open.';
-  $('#ctLg').innerHTML = `<div class="lgr h"><span>#</span><span></span><span>Bot</span><span class="r">10 days</span><span class="r">Today</span><span class="r hm">Trades</span></div>` +
+  $('#ctLg').innerHTML = `<div class="lgr h"><span>#</span><span></span><span>Bot</span><span class="r">10 days</span><span class="r">${open ? 'Today' : 'Last day'}</span><span class="r hm">Trades</span></div>` +
     shown.map((b, i) => `<div class="lgr ${i === 8 ? 'cut' : ''}" data-ctbot="${b.id}"><span class="dim num">${b.liveRank}</span><span class="sdot" style="background:${sigCol(b)};opacity:${b.pos ? 1 : 0.3 + (b.sig?.charge || 0) * 0.7}"></span><span style="min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(b.name)}${b.funded ? `<span class="fund">${cusd(b.alloc)}</span>` : ''}</span><span class="r num ${cls(b.r10)}">${cpct(b.r10 * 100)}</span><span class="r num ${cls(b.today)}">${b.today ? cpct(b.today * 100) : '–'}</span><span class="r num dim hm">${b.n}</span></div>`).join('');
   $('#ctLgMore').textContent = ctLgAll ? 'Show top 12' : `Show all ${B.length} bots`;
 
