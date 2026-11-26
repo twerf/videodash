@@ -167,6 +167,11 @@ textarea{min-height:96px;resize:vertical}
 .ai input{width:18px;height:18px;accent-color:#ececee}
 .ai small{display:block;color:var(--tx3);font-size:12px}
 .pending{color:var(--tx2);font-size:12px}
+.flist{margin-top:8px;border:1px solid var(--line);border-radius:8px;max-height:180px;overflow:auto}
+.flist div{display:flex;gap:8px;padding:7px 10px;border-top:1px solid var(--line);font-size:13px}
+.flist div:first-child{border-top:0}
+.flist span:first-child{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.flist .ok{color:var(--up)}
 .prog{height:4px;background:var(--line);border-radius:2px;overflow:hidden;margin-top:8px;display:none}
 .prog i{display:block;height:100%;width:0;background:var(--tx);transition:width .2s}
 .drop.hov{border-color:var(--tx)}
@@ -277,14 +282,16 @@ textarea{min-height:96px;resize:vertical}
 <!-- edit form -->
 <div class="sheet" id="fSheet"><div class="sheetin">
   <div class="sheeth"><h3 id="fHead">New video</h3><button class="ibtn" data-close="fSheet">&times;</button></div>
-  <input type="file" id="file" accept="video/*,.mp4,.mov" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none">
-  <label class="drop" id="drop" for="file"><span id="dropTxt">Tap to pick a video</span></label>
+  <input type="file" id="file" multiple accept="video/*,.mp4,.mov" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none">
+  <label class="drop" id="drop" for="file"><span id="dropTxt">Tap to pick videos (pick several to bulk add)</span></label>
   <div id="filePrev" class="dim" style="font-size:13px;margin-top:6px"></div>
   <div class="prog" id="prog"><i></i></div>
-  <label class="ai"><input type="checkbox" id="fAI" checked><span>Write title, caption &amp; hashtags for me<small>Leave the fields blank and they fill in a few minutes after saving, based on the video and what's working on that account.</small></span></label>
-  <div class="field"><div class="fl">Title<span class="cnt" id="cTitle"></span></div><input type="text" id="fTitle" placeholder="YouTube title / hook"></div>
-  <div class="field"><div class="fl">Caption<span class="cnt" id="cDesc"></span></div><textarea id="fDesc" placeholder="caption text"></textarea></div>
-  <div class="field"><div class="fl">Hashtags</div><input type="text" id="fTags" placeholder="moviecore core fyp"></div>
+  <label class="ai"><input type="checkbox" id="fAI" checked><span>Write the caption &amp; description for me<small>Leave caption/description blank and they fill in a few minutes after saving, based on the video and what's working on that account.</small></span></label>
+  <div id="textFields">
+  <div class="field"><div class="fl">Caption <span class="dim">(on-screen text)</span><span class="cnt" id="cCap"></span></div><input type="text" id="fCap" placeholder="text you put over the video"></div>
+  <div class="field"><div class="fl">Description <span class="dim">(words + hashtags)</span><span class="cnt" id="cDesc"></span></div><textarea id="fDesc" placeholder="hook line&#10;&#10;#hashtags"></textarea></div>
+  </div>
+  <div id="bulkNote" class="note hidden">Each video becomes its own queue item and gets its own caption and description written automatically.</div>
   <div class="field"><div class="fl">Post to</div><div class="picks" id="fAccts"></div></div>
   <div class="field row2"><div><div class="fl">Planned</div><input type="datetime-local" id="fWhen"></div>
     <div><div class="fl">Status</div><select id="fStatus"><option value="draft">Draft</option><option value="ready">Ready</option><option value="posted">Posted</option></select></div></div>
@@ -370,6 +377,11 @@ async function api(url, opt = {}) {
     }, item.id ? 'queue: edit' : 'queue: add');
     return { ok: true };
   }
+  if (p === '/api/queue-bulk') {
+    const items = JSON.parse(opt.body), now = Date.now();
+    await mutate('queue.json', [], (q) => { items.forEach((it, i) => q.unshift({ status: 'draft', ...it, id: uid() + i, created: now + i, updated: now + i })); return q; }, `queue: add ${items.length}`);
+    return { ok: true };
+  }
   if (p.startsWith('/api/queue/') && opt.method === 'DELETE') {
     const id = p.split('/').pop(); let gone;
     await mutate('queue.json', [], (q) => { gone = q.find((x) => x.id === id); return q.filter((x) => x.id !== id); }, 'queue: delete');
@@ -418,7 +430,7 @@ async function api(url, opt = {}) {
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 
 
-let S = null, F = localStorage.getItem('vd_f') || 'all', SORT = 'new', RANGE = 7, SHOWN = 15, QF = 'open', editing = null, pendingFile = null, view = 'stats';
+let pendingFiles = [], S = null, F = localStorage.getItem('vd_f') || 'all', SORT = 'new', RANGE = 7, SHOWN = 15, QF = 'open', editing = null, pendingFile = null, view = 'stats';
 const acct = (id) => S.accounts.find((a) => a.id === id) || { id, handle: id, platform: 'tiktok' };
 const ids = () => F === 'all' ? S.accounts.map((a) => a.id) : [F];
 
@@ -607,7 +619,8 @@ function drawChart() {
 
 // ---------- queue ----------
 const parseTags = (s) => [...new Set(String(s || '').split(/[\s,]+/).map((t) => t.replace(/^#+/, '').trim()).filter(Boolean))].map((t) => '#' + t);
-const captionOf = (q) => [q.description, parseTags(q.hashtags).join(' ')].filter(Boolean).join('\n\n');
+const descOf = (q) => { const d = (q.description || '').trim(), t = parseTags(q.hashtags).join(' '); return t && !d.includes(t.split(' ')[0]) ? [d, t].filter(Boolean).join('\n\n') : d; };
+const capOf = (q) => q.caption || q.title || '';
 const whenFmt = (w) => w ? new Date(w).toLocaleString([], { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '';
 function renderQueue() {
   const n = (st) => S.queue.filter((q) => st === 'open' ? q.status !== 'posted' : q.status === st).length;
@@ -619,7 +632,7 @@ function renderQueue() {
     return `<div class="qgroup"><div class="sech"><h2>${label}</h2><span class="dim num">${items.length}</span></div><div class="tbl">` + items.map((q) => {
       const done = Object.keys(q.postedTo || {}).length, tot = (q.accounts || []).length;
       return `<div class="tr qrow" data-id="${q.id}"><span class="dot ${q.status}"></span>
-        <div style="min-width:0"><div class="qt">${esc(q.title || (q.description || '').split('\n')[0]) || `<span class="dim">${q.autofill === 'pending' ? 'New video' : 'Untitled'}</span>`}</div>
+        <div style="min-width:0"><div class="qt">${esc(capOf(q) || (q.description || '').split('\n')[0]) || `<span class="dim">${q.autofill === 'pending' ? 'New video' : 'Untitled'}</span>`}</div>
         <div class="qm">${q.autofill === 'pending' ? '<span class="pending">Writing caption… · </span>' : ''}${(q.autofill || '').startsWith('failed') ? '<span class="down">Caption failed · </span>' : ''}${(q.accounts || []).map((id) => '@' + esc(acct(id).handle)).join(', ') || 'no accounts picked'}${tot && st !== 'posted' && done ? ` · ${done}/${tot} posted` : ''}${q.file ? '' : ' · no video'}</div></div>
         <span class="qwhen">${q.when ? whenFmt(q.when) : ''}</span><span class="chev">›</span></div>`;
     }).join('') + '</div></div>';
@@ -632,16 +645,15 @@ $('#qList').onclick = (e) => { const r = e.target.closest('[data-id]'); if (r) o
 let openId = null;
 function openItem(id) {
   openId = id; const q = S.queue.find((x) => x.id === id); if (!q) return closeSheet('qSheet');
-  const tags = parseTags(q.hashtags).join(' ');
+  const desc = descOf(q);
   $('#qSheetIn').innerHTML = `
-    <div class="sheeth"><span class="dot ${q.status}"></span><h3>${esc(q.title) || 'Untitled'}</h3><button class="ibtn" data-close="qSheet">&times;</button></div>
+    <div class="sheeth"><span class="dot ${q.status}"></span><h3>${esc(capOf(q) || (q.description || '').split('\n')[0]) || 'Untitled'}</h3><button class="ibtn" data-close="qSheet">&times;</button></div>
     ${q.file ? `<div id="vbox"><div class="vload" data-act="load"><span>Tap to load video</span><span class="dim" style="font-size:12px">${(q.file.size / 1e6).toFixed(1)} MB</span></div></div>` : '<div class="dim" style="font-size:13px">No video attached</div>'}
     ${q.autofill === 'pending' ? '<div class="note" style="margin-top:12px">Writing the caption and hashtags… this updates by itself in a few minutes.</div>' : ''}
     ${(q.autofill || '').startsWith('failed') ? `<div class="err">Auto caption failed: ${esc(q.autofill.slice(8))}</div>` : ''}
-    <button class="btn pri" data-copy="all" style="width:100%;margin-top:14px">Copy caption + hashtags</button>
-    ${q.title ? `<div class="field"><div class="fl">Title<span class="sp"></span><button class="copyb" data-copy="title">Copy</button></div><div class="box">${esc(q.title)}</div></div>` : ''}
-    <div class="field"><div class="fl">Caption<span class="sp"></span><button class="copyb" data-copy="desc">Copy</button></div><div class="box">${esc(q.description) || '<span class="dim">empty</span>'}</div></div>
-    <div class="field"><div class="fl">Hashtags<span class="sp"></span><button class="copyb" data-copy="tags">Copy</button></div><div class="box">${esc(tags) || '<span class="dim">none</span>'}</div></div>
+    <div class="field"><div class="fl">Caption <span class="dim">(on-screen text)</span><span class="sp"></span><button class="copyb" data-copy="cap">Copy</button></div><div class="box">${esc(capOf(q)) || '<span class="dim">empty</span>'}</div></div>
+    <div class="field"><div class="fl">Description<span class="sp"></span><button class="copyb" data-copy="desc">Copy</button></div><div class="box">${esc(desc) || '<span class="dim">empty</span>'}</div></div>
+    <button class="btn pri" data-copy="desc" style="width:100%;margin-top:12px">Copy description</button>
     <div class="field"><div class="fl">Posted to</div><div class="dests">${(q.accounts || []).map((aid) => { const t = (q.postedTo || {})[aid]; return `<div class="dest ${t ? 'done' : ''}" data-dest="${aid}"><span class="cb"></span>@${esc(acct(aid).handle)} <span class="dim">${plat(acct(aid).platform)}</span><span class="when">${t ? ago(t) + ' ago' : 'tap when posted'}</span></div>`; }).join('') || '<div class="dest dim">No accounts picked</div>'}</div></div>
     ${q.when ? `<div class="field"><div class="fl">Planned</div><div>${whenFmt(q.when)}</div></div>` : ''}
     ${q.notes ? `<div class="field"><div class="fl">Notes</div><div class="mut">${esc(q.notes)}</div></div>` : ''}
@@ -652,7 +664,7 @@ function openItem(id) {
 $('#qSheetIn').onclick = async (e) => {
   const q = S.queue.find((x) => x.id === openId); if (!q) return;
   const c = e.target.closest('[data-copy]')?.dataset.copy;
-  if (c) { const txt = { all: captionOf(q), title: q.title || '', desc: q.description || '', tags: parseTags(q.hashtags).join(' ') }[c]; await navigator.clipboard.writeText(txt); return toast('Copied'); }
+  if (c) { const txt = { cap: capOf(q), desc: descOf(q) }[c]; await navigator.clipboard.writeText(txt); return toast('Copied'); }
   const dest = e.target.closest('[data-dest]');
   if (dest) {
     const postedTo = { ...(q.postedTo || {}) }, id = dest.dataset.dest;
@@ -696,32 +708,46 @@ async function videoBlob(file) {
 }
 
 function openForm(q = null) {
-  editing = q; pendingFile = null;
+  editing = q; pendingFile = null; pendingFiles = [];
+  $('#textFields').classList.remove('hidden'); $('#bulkNote').classList.add('hidden'); $('#fAI').disabled = false; $('#fSave').textContent = 'Save'; $('#file').multiple = !q;
   $('#fHead').textContent = q ? 'Edit video' : 'New video';
-  $('#fTitle').value = q?.title || ''; $('#fDesc').value = q?.description || ''; $('#fTags').value = q?.hashtags || '';
+  $('#fCap').value = q ? capOf(q) : ''; $('#fDesc').value = q ? descOf(q) : '';
   $('#fWhen').value = q?.when || ''; $('#fStatus').value = q?.status || 'ready'; $('#fNotes').value = q?.notes || ''; $('#fErr').textContent = '';
   const chosen = q ? (q.accounts || []) : (F !== 'all' ? [F] : []);
   $('#fAccts').innerHTML = S.accounts.map((a) => `<span class="pick ${chosen.includes(a.id) ? 'on' : ''}" data-a="${a.id}">@${esc(a.handle)} <span style="opacity:.6">${plat(a.platform)}</span></span>`).join('');
   $('#filePrev').textContent = q?.file ? 'Current: ' + q.file.name : '';
-  $('#dropTxt').textContent = q?.file ? 'Tap to replace the video' : 'Tap to pick a video';
+  $('#dropTxt').textContent = q?.file ? 'Tap to replace the video' : 'Tap to pick videos (pick several to bulk add)';
   $('#fAI').checked = !q || q.autofill !== 'done'; $('#prog').style.display = 'none';
   counts(); $('#fSheet').classList.add('on');
 }
 $('#fAccts').onclick = (e) => e.target.closest('.pick')?.classList.toggle('on');
 function counts() {
-  const t = $('#fTitle').value.length, cap = captionOf({ description: $('#fDesc').value, hashtags: $('#fTags').value }).length;
-  $('#cTitle').textContent = t + '/100'; $('#cTitle').className = 'cnt' + (t > 100 ? ' over' : '');
-  $('#cDesc').textContent = cap + '/2200'; $('#cDesc').className = 'cnt' + (cap > 2200 ? ' over' : '');
+  const c = $('#fCap').value.length, d = $('#fDesc').value.length;
+  $('#cCap').textContent = c ? c + '' : ''; $('#cDesc').textContent = d + '/2200'; $('#cDesc').className = 'cnt' + (d > 2200 ? ' over' : '');
 }
-['#fTitle', '#fDesc', '#fTags'].forEach((s) => $(s).addEventListener('input', counts));
-function pickFile(f) { if (!f) return; pendingFile = f; $('#filePrev').textContent = `${f.name} · ${(f.size / 1e6).toFixed(1)} MB`; $('#dropTxt').textContent = 'Tap to pick a different video'; }
-$('#file').onchange = (e) => pickFile(e.target.files[0]);
+['#fCap', '#fDesc'].forEach((s) => $(s).addEventListener('input', counts));
+function pickFiles(list) {
+  let fs = [...(list || [])].filter((f) => f.type.startsWith('video/') || /\.(mp4|mov|m4v|webm)$/i.test(f.name));
+  if (!fs.length) return;
+  if (editing) fs = fs.slice(0, 1);
+  pendingFiles = fs; pendingFile = fs[0];
+  const bulk = fs.length > 1;
+  $('#textFields').classList.toggle('hidden', bulk); $('#bulkNote').classList.toggle('hidden', !bulk);
+  if (bulk) { $('#fAI').checked = true; }
+  $('#fAI').disabled = bulk;
+  const total = fs.reduce((a, f) => a + f.size, 0);
+  $('#filePrev').innerHTML = bulk ? `${fs.length} videos · ${(total / 1e6).toFixed(0)} MB<div class="flist">${fs.map((f, i) => `<div data-fi="${i}"><span>${esc(f.name)}</span><span class="dim">${(f.size / 1e6).toFixed(1)} MB</span></div>`).join('')}</div>` : `${esc(fs[0].name)} · ${(fs[0].size / 1e6).toFixed(1)} MB`;
+  $('#dropTxt').textContent = bulk ? 'Tap to pick different videos' : 'Tap to pick a different video';
+  $('#fSave').textContent = bulk ? `Add ${fs.length} videos` : 'Save';
+}
+$('#file').onchange = (e) => { pickFiles(e.target.files); e.target.value = ''; };
 ['dragover', 'dragenter'].forEach((ev) => $('#drop').addEventListener(ev, (e) => { e.preventDefault(); $('#drop').classList.add('hov'); }));
 ['dragleave', 'drop'].forEach((ev) => $('#drop').addEventListener(ev, (e) => { e.preventDefault(); $('#drop').classList.remove('hov'); }));
-$('#drop').addEventListener('drop', (e) => pickFile(e.dataTransfer.files[0]));
+$('#drop').addEventListener('drop', (e) => pickFiles(e.dataTransfer.files));
 $('#newBtn').onclick = () => openForm();
 $('#fSave').onclick = async () => {
   const btn = $('#fSave'); btn.disabled = true; $('#fErr').textContent = '';
+  if (pendingFiles.length > 1 && !editing) return saveBulk(btn);
   try {
     let file = editing?.file || null;
     if (pendingFile) {
@@ -729,16 +755,39 @@ $('#fSave').onclick = async () => {
       file = (await api('/api/upload?name=' + encodeURIComponent(pendingFile.name), { method: 'POST', body: pendingFile, onProgress: (x) => { $('#prog i').style.width = (x * 100).toFixed(0) + '%'; btn.textContent = `Uploading ${(x * 100).toFixed(0)}%…`; } })).file;
     }
     btn.textContent = 'Saving…';
-    const item = { title: $('#fTitle').value.trim(), description: $('#fDesc').value.trim(), hashtags: parseTags($('#fTags').value).join(' '),
+    const item = { caption: $('#fCap').value.trim(), description: $('#fDesc').value.trim(), title: '', hashtags: '',
       accounts: $$('#fAccts .pick.on').map((p) => p.dataset.a), when: $('#fWhen').value, status: $('#fStatus').value, notes: $('#fNotes').value.trim(), file };
     if (editing) item.id = editing.id;
-    const blank = !item.title || !item.description || !item.hashtags;
+    const blank = !item.caption || !item.description;
     if ($('#fAI').checked && file && blank && (!editing || pendingFile || editing.autofill !== 'done')) item.autofill = 'pending';
     await api('/api/queue', { method: 'POST', body: JSON.stringify(item) });
     closeSheet('fSheet'); toast('Saved'); await load();
   } catch (e) { $('#fErr').textContent = e.message; }
   btn.disabled = false; btn.textContent = 'Save'; $('#prog').style.display = 'none'; $('#prog i').style.width = '0';
 };
+
+async function saveBulk(btn) {
+  const fs = pendingFiles, shared = { accounts: $$('#fAccts .pick.on').map((p) => p.dataset.a), when: $('#fWhen').value, status: $('#fStatus').value, notes: $('#fNotes').value.trim() };
+  const total = fs.reduce((a, f) => a + f.size, 0); let doneBytes = 0; const items = [];
+  $('#prog').style.display = 'block';
+  try {
+    for (let i = 0; i < fs.length; i++) {
+      const f = fs[i], row = $(`.flist [data-fi="${i}"] span:last-child`);
+      const up = (await api('/api/upload?name=' + encodeURIComponent(f.name), { method: 'POST', body: f, onProgress: (x) => {
+        const pc = (doneBytes + f.size * x) / total; $('#prog i').style.width = (pc * 100).toFixed(0) + '%';
+        btn.textContent = `Uploading ${i + 1}/${fs.length} · ${(pc * 100).toFixed(0)}%`; if (row) row.textContent = (x * 100).toFixed(0) + '%'; } })).file;
+      doneBytes += f.size; if (row) { row.textContent = 'uploaded'; row.className = 'ok'; }
+      items.push({ ...shared, caption: '', description: '', file: up, autofill: 'pending' });
+    }
+    btn.textContent = 'Saving…';
+    await api('/api/queue-bulk', { method: 'POST', body: JSON.stringify(items) });
+    closeSheet('fSheet'); toast(`Added ${items.length} videos. Captions coming in a few min.`); await load();
+  } catch (e) {
+    $('#fErr').textContent = e.message + (items.length ? ` (${items.length} uploaded before the error; saving those)` : '');
+    if (items.length) { try { await api('/api/queue-bulk', { method: 'POST', body: JSON.stringify(items) }); load(); } catch {} }
+  }
+  btn.disabled = false; btn.textContent = 'Save'; $('#prog').style.display = 'none'; $('#prog i').style.width = '0';
+}
 
 // ---------- settings ----------
 let draft = [];
