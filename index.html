@@ -1349,7 +1349,7 @@ function renderLine() {
   $('#alFilter').innerHTML = ['review', 'queued', 'approved', 'scrapped'].map((k) => `<button data-alf="${k}" class="${alF === k ? 'on' : ''}">${AL_ST[k]} (${cnt(k)})</button>`).join('');
   const rows = it.filter((x) => (AL_ST[x.status] || x.status) === AL_ST[alF]).sort((a, b) => b.at - a.at);
   $('#alX').innerHTML = rows.map((x) => `<div class="al" data-al="${esc(x.pid)}">
-    <h3>${esc(x.title)}</h3><div class="dim" style="font-size:12px">${x.live ? 'Live on Etsy' : 'Not on Etsy yet (goes live when you approve)'} · round ${x.round}${x.note ? ' · your note: ' + esc(x.note) : ''}${x.todo ? ' · <b>' + esc(x.todo) + '</b>' : ''}${x.error ? ' · error: ' + esc(x.error) : ''}</div>
+    <h3>${esc(x.title)}</h3><div class="dim" style="font-size:12px">${x.live ? 'Live on Etsy' : 'Not on Etsy yet (goes live when you approve)'} · round ${x.round}${x.note ? ' · your note: ' + esc(x.note) : ''}${x.todo ? ' · <b>' + esc(x.todo) + '</b>' : ''}${x.etsy_note ? ' · ' + esc(x.etsy_note) : ''}${x.error ? ' · error: ' + esc(x.error) : ''}</div>
     ${x.status === 'queued' || x.status === 'making' ? '<div class="dim" style="margin-top:8px;font-size:13px">Making new listing photos. It comes back here for you to check.</div>' : `<div class="alcols">
       <div class="alcol"><div class="l">Printify (what ships)</div><div class="alimgs">${(x.printify || []).map((p, i) => `<img class="${i === 0 ? 'big' : ''}" data-ghimg="${esc(p)}" alt="">`).join('')}</div></div>
       <div class="alcol"><div class="l">AI listing photos</div><div class="alimgs">${(x.ai || []).map((p, i) => `<img class="${i === 0 ? 'big' : ''}" data-ghimg="${esc(p)}" alt="">`).join('') || '<div class="dim">No photo passed the checker. Tap Fix to remake.</div>'}</div>
