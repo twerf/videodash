@@ -294,12 +294,13 @@ textarea{min-height:96px;resize:vertical}
 .chbox{max-height:55vh;overflow:auto;display:flex;flex-direction:column;gap:8px;padding:4px 0}.cm{max-width:85%;padding:8px 11px;border-radius:12px;font-size:14px;line-height:1.4}.cm.user{align-self:flex-end;background:var(--tx);color:var(--bg)}.cm.agent{align-self:flex-start;background:var(--s2);border:1px solid var(--line)}
 .mnbig{border:1px solid var(--line);border-radius:12px;background:var(--s1);padding:18px 20px;margin-bottom:12px}.mnbig .l{font-size:13px;color:var(--tx2)}.mnbig .v{font-size:40px;font-weight:600;letter-spacing:-.02em;margin:2px 0}.mnbig .dim{font-size:13px}
 .kpi .n{font-size:11.5px;color:var(--tx3);margin-top:2px}
+.td{grid-template-columns:auto 1fr;align-items:start;cursor:pointer}.td .ck{width:18px;height:18px;border:1.5px solid var(--line2);border-radius:5px;margin-top:2px;display:grid;place-items:center}.td.done .ck{background:var(--tx);border-color:var(--tx)}.td.done .ck::after{content:"";width:9px;height:5px;border:2px solid var(--bg);border-top:0;border-right:0;transform:rotate(-45deg) translate(1px,-1px)}.td.done .t{text-decoration:line-through;color:var(--tx3)}
 </style>
 </head>
 <body>
 <div class="top"><div class="topin">
   <div class="brand">VideoDash</div>
-  <div class="tabs" id="tabs"><button data-v="stats" class="on">Stats</button><button data-v="queue">Queue</button><button data-v="station">Station</button><button data-v="city">City</button><button data-v="money">Money</button></div>
+  <div class="tabs" id="tabs"><button data-v="stats" class="on">Stats</button><button data-v="queue">Queue</button><button data-v="station">Station</button><button data-v="city">City</button><button data-v="money">Money</button><button data-v="todo">To-do</button></div>
   <div class="sp"></div>
   <span class="upd" id="upd"></span>
   <button class="ibtn" id="refreshBtn" title="Refresh stats"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 3v6h-6"/></svg></button>
@@ -350,6 +351,11 @@ textarea{min-height:96px;resize:vertical}
     <div class="sec"><div class="sech"><h2>Autopilot</h2></div><div class="tbl"><div class="tr" style="grid-template-columns:1fr auto"><div><div class="t" style="font-weight:500">Run everything automatically</div><div class="dim" style="font-size:12.5px">Approves finished work, publishes Etsy products once your shop is connected, sends Etsy orders to Printify production, starts Fiverr orders from your email, and pings you on Discord.</div></div><button class="btn" id="mnAuto"></button></div></div></div>
   </section>
 
+  <section id="v-todo" class="hidden">
+    <div class="stline"><span class="dot on" id="tdDot"></span><span id="tdLine">Loading...</span></div>
+    <div id="tdX"></div>
+  </section>
+
   <section id="v-station" class="hidden">
     <div class="stline"><span class="dot" id="stDot"></span><span id="stLine">Loading station...</span></div>
     <div class="seg stsub" id="stSub"><button data-ss="crew" class="on">Crew</button><button data-ss="lines">Lines</button><button data-ss="outbox">Outbox</button><button data-ss="night">Night shift</button><button data-ss="goals">Goals</button></div>
@@ -396,6 +402,7 @@ textarea{min-height:96px;resize:vertical}
   <button data-v="queue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M10 9l5 3-5 3z"/></svg>Queue</button>
   <button data-v="station"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="5" r="2.5"/><path d="M12 7.5v7M12 10l-4 3M12 10l4 3M12 14.5l-3 5.5M12 14.5l3 5.5"/></svg>Station</button>
   <button data-v="money"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2v20M17 6.5c-1-1.3-2.8-2-5-2-3 0-5 1.5-5 3.6 0 5 10 2.6 10 7.6 0 2.1-2 3.8-5 3.8-2.3 0-4.2-.8-5.2-2.2"/></svg>Money</button>
+  <button data-v="todo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M8 12l3 3 5-6"/></svg>To-do</button>
   <button data-v="city"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 21h18M5 21V10h4v11M10 21V4h5v17M16 21v-8h3v8"/></svg>City</button>
 </nav>
 <div class="sheet" id="stSheet"><div class="sheetin" id="stSheetIn"></div></div>
@@ -1304,13 +1311,29 @@ function renderMoney() {
 }
 setInterval(() => TOKEN && view === 'money' && document.visibilityState === 'visible' && getJson('station.json', null).then((s) => { ST = s; renderMoney(); }).catch(() => {}), 30000);
 
+// ---------- to-do ----------
+let TD = null;
+const TDG = ['Do soon', 'Marketing', 'Later', 'Skipped'];
+async function loadTodo() { try { TD = await getJson('todo.json', { items: [] }); } catch (e) { $('#tdLine').textContent = 'Could not load: ' + e.message; return; } renderTodo(); }
+function renderTodo() {
+  const it = TD?.items || []; const left = it.filter((x) => !x.done && x.group !== 'Skipped').length;
+  $('#tdLine').textContent = `${left} open · tap an item to check it off`;
+  const groups = [...TDG, ...new Set(it.map((x) => x.group).filter((g) => !TDG.includes(g)))];
+  $('#tdX').innerHTML = groups.map((g) => { const r = it.filter((x) => x.group === g); if (!r.length) return '';
+    return `<div class="sec"><div class="sech"><h2>${esc(g)}</h2><span class="dim" style="font-size:12px">${r.filter((x) => !x.done).length} open</span></div><div class="tbl">${r.map((x) => `<div class="tr td${x.done ? ' done' : ''}" data-td="${esc(x.id)}"><span class="ck"></span><div style="min-width:0"><div class="t" style="font-weight:500">${esc(x.title)}</div><div class="dim" style="font-size:12.5px;margin-top:2px">${esc(x.note)}</div>${x.source ? `<div style="margin-top:6px"><span class="tag">${esc(x.source)}</span></div>` : ''}</div></div>`).join('')}</div></div>`; }).join('');
+}
+$('#tdX').onclick = async (e) => { const r = e.target.closest('[data-td]'); if (!r) return; const id = r.dataset.td;
+  const x = TD.items.find((i) => i.id === id); if (!x) return; x.done = !x.done; renderTodo();
+  try { TD = await mutate('todo.json', { items: [] }, (cur) => { const y = (cur.items || []).find((i) => i.id === id); if (y) y.done = x.done; return cur; }, 'todo: ' + (x.done ? 'done ' : 'reopen ') + id); renderTodo(); toast(x.done ? 'Checked off' : 'Reopened'); }
+  catch (err) { x.done = !x.done; renderTodo(); toast('Save failed: ' + err.message); } };
+
 // ---------- shell ----------
 function closeSheet(id) { $('#' + id).classList.remove('on'); if (id === 'qSheet') openId = null; }
 document.addEventListener('click', (e) => { const c = e.target.closest('[data-close]'); if (c) closeSheet(c.dataset.close); else if (e.target.classList.contains('sheet')) closeSheet(e.target.id); });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') $$('.sheet.on').forEach((s) => closeSheet(s.id)); });
 function setView(v) {
   view = v; $$('#tabs button, #bnav button').forEach((b) => b.classList.toggle('on', b.dataset.v === v));
-  $('#v-stats').classList.toggle('hidden', v !== 'stats'); $('#v-queue').classList.toggle('hidden', v !== 'queue'); $('#v-station').classList.toggle('hidden', v !== 'station'); $('#v-money').classList.toggle('hidden', v !== 'money'); if (v === 'money' && TOKEN) getJson('station.json', null).then((s) => { ST = s; renderMoney(); }).catch(() => {}); $('#v-city').classList.toggle('hidden', v !== 'city'); if (v === 'station' && TOKEN) loadStation(); if (v === 'city' && TOKEN) loadCity();
+  $('#v-stats').classList.toggle('hidden', v !== 'stats'); $('#v-queue').classList.toggle('hidden', v !== 'queue'); $('#v-station').classList.toggle('hidden', v !== 'station'); $('#v-money').classList.toggle('hidden', v !== 'money'); if (v === 'money' && TOKEN) getJson('station.json', null).then((s) => { ST = s; renderMoney(); }).catch(() => {}); $('#v-city').classList.toggle('hidden', v !== 'city'); $('#v-todo').classList.toggle('hidden', v !== 'todo'); if (v === 'todo' && TOKEN) loadTodo(); if (v === 'station' && TOKEN) loadStation(); if (v === 'city' && TOKEN) loadCity();
   history.replaceState(null, '', '#' + v); if (v === 'stats' && S) drawChart(); scrollTo({ top: 0 });
 }
 $$('#tabs button, #bnav button').forEach((b) => b.onclick = () => setView(b.dataset.v));
@@ -1334,6 +1357,7 @@ if (location.hash === '#queue') setView('queue');
 if (location.hash === '#station') setView('station');
 if (location.hash === '#money') setView('money');
 if (location.hash === '#city') setView('city');
+if (location.hash === '#todo') setView('todo');
 setSS(SS);
 if (TOKEN) load(); else logout();
 setInterval(() => TOKEN && !runPoll && document.visibilityState === 'visible' && load(), 5 * 60000);
