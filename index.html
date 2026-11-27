@@ -1419,6 +1419,7 @@ if (location.hash === '#station') setView('station');
 if (location.hash === '#money') setView('money');
 if (location.hash === '#city') setView('city');
 if (location.hash === '#todo') setView('todo');
+if (location.hash === '#line') setView('line');
 setSS(SS);
 if (TOKEN) load(); else logout();
 setInterval(() => TOKEN && !runPoll && document.visibilityState === 'visible' && load(), 5 * 60000);
