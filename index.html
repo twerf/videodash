@@ -118,6 +118,25 @@ canvas{display:block;width:100%}
 .btn{border:1px solid var(--line2);background:var(--s2);color:var(--tx);border-radius:8px;padding:8px 14px;cursor:pointer;font-weight:500;white-space:nowrap}
 .btn:hover{border-color:#3d4148}
 .btn.pri{background:var(--tx);color:var(--bg);border-color:var(--tx)}
+.alf{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}
+.alf button{font:inherit;font-size:12.5px;padding:5px 10px;border-radius:999px;border:1px solid var(--ln,#2a2a2a);background:transparent;color:inherit;cursor:pointer}
+.alf button.on{background:var(--tx);color:var(--bg);border-color:var(--tx)}
+.al{border:1px solid var(--ln,#2a2a2a);border-radius:12px;padding:12px;margin-bottom:14px}
+.al h3{font-size:14px;margin:0 0 2px;font-weight:600}
+.alcols{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+.alcol .l{font-size:11.5px;text-transform:uppercase;letter-spacing:.04em;opacity:.6;margin-bottom:6px}
+.alimgs{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.alimgs img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;background:#ddd;cursor:zoom-in}
+.alimgs img.big{grid-column:1/-1}
+.alchk{font-size:11.5px;opacity:.7;margin-top:4px}
+.alact{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:12px}
+.alact .ok{background:#1f7a3f;color:#fff;border-color:#1f7a3f}
+.alact .fx{background:#a86b00;color:#fff;border-color:#a86b00}
+.alact .sc{background:transparent;color:#d33;border-color:#d33}
+.alnote{width:100%;box-sizing:border-box;margin-top:8px;font:inherit;font-size:13px;padding:8px;border-radius:8px;border:1px solid var(--ln,#2a2a2a);background:transparent;color:inherit}
+.alzoom{position:fixed;inset:0;background:rgba(0,0,0,.85);display:flex;align-items:center;justify-content:center;z-index:99}
+.alzoom img{max-width:96vw;max-height:92vh;border-radius:8px}
+@media(max-width:640px){.alcols{grid-template-columns:1fr}}
 .btn.danger{color:var(--down)}
 .btn.sm{padding:5px 10px;font-size:13px}
 .btn:disabled{opacity:.5}
@@ -300,7 +319,7 @@ textarea{min-height:96px;resize:vertical}
 <body>
 <div class="top"><div class="topin">
   <div class="brand">VideoDash</div>
-  <div class="tabs" id="tabs"><button data-v="stats" class="on">Stats</button><button data-v="queue">Queue</button><button data-v="station">Station</button><button data-v="city">City</button><button data-v="money">Money</button><button data-v="todo">To-do</button></div>
+  <div class="tabs" id="tabs"><button data-v="stats" class="on">Stats</button><button data-v="queue">Queue</button><button data-v="station">Station</button><button data-v="city">City</button><button data-v="money">Money</button><button data-v="line">Assembly Line</button><button data-v="todo">To-do</button></div>
   <div class="sp"></div>
   <span class="upd" id="upd"></span>
   <button class="ibtn" id="refreshBtn" title="Refresh stats"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 3v6h-6"/></svg></button>
@@ -349,6 +368,12 @@ textarea{min-height:96px;resize:vertical}
     <div class="sec"><div class="sech"><h2>Asset packs on itch</h2></div><div class="tbl" id="mnItch"></div></div>
     <div class="sec"><div class="sech"><h2>Activity</h2></div><div class="tbl" id="mnFeed"></div></div>
     <div class="sec"><div class="sech"><h2>Autopilot</h2></div><div class="tbl"><div class="tr" style="grid-template-columns:1fr auto"><div><div class="t" style="font-weight:500">Run everything automatically</div><div class="dim" style="font-size:12.5px">Approves finished work, publishes Etsy products once your shop is connected, sends Etsy orders to Printify production, starts Fiverr orders from your email, and pings you on Discord.</div></div><button class="btn" id="mnAuto"></button></div></div></div>
+  </section>
+
+  <section id="v-line" class="hidden">
+    <div class="stline"><span class="dot" id="alDot"></span><span id="alLine">Loading...</span></div>
+    <div class="alf" id="alFilter"></div>
+    <div id="alX"></div>
   </section>
 
   <section id="v-todo" class="hidden">
@@ -401,6 +426,7 @@ textarea{min-height:96px;resize:vertical}
   <button data-v="stats" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Stats</button>
   <button data-v="queue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M10 9l5 3-5 3z"/></svg>Queue</button>
   <button data-v="station"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="5" r="2.5"/><path d="M12 7.5v7M12 10l-4 3M12 10l4 3M12 14.5l-3 5.5M12 14.5l3 5.5"/></svg>Station</button>
+  <button data-v="line"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="7" height="7" rx="1"/><rect x="14" y="4" width="7" height="7" rx="1"/><path d="M3 17h18M7 21l-2-4M17 21l2-4"/></svg>Line</button>
   <button data-v="money"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2v20M17 6.5c-1-1.3-2.8-2-5-2-3 0-5 1.5-5 3.6 0 5 10 2.6 10 7.6 0 2.1-2 3.8-5 3.8-2.3 0-4.2-.8-5.2-2.2"/></svg>Money</button>
   <button data-v="todo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M8 12l3 3 5-6"/></svg>To-do</button>
   <button data-v="city"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 21h18M5 21V10h4v11M10 21V4h5v17M16 21v-8h3v8"/></svg>City</button>
@@ -1311,6 +1337,41 @@ function renderMoney() {
 }
 setInterval(() => TOKEN && view === 'money' && document.visibilityState === 'visible' && getJson('station.json', null).then((s) => { ST = s; renderMoney(); }).catch(() => {}), 30000);
 
+// ---------- assembly line ----------
+let AL = null, alF = 'review';
+const AL_ST = { review: 'Needs you', queued: 'Being remade', making: 'Being remade', approved: 'Approved', scrapped: 'Scrapped' };
+async function loadLine() { try { AL = await getJson('assembly.json', { items: {} }); } catch (e) { $('#alLine').textContent = 'Could not load: ' + e.message; return; } renderLine(); }
+function renderLine() {
+  const it = Object.values(AL?.items || {}); const online = ST && Date.now() - ST.at < 12 * 60000;
+  const cnt = (k) => it.filter((x) => (AL_ST[x.status] || x.status) === AL_ST[k]).length;
+  $('#alDot').classList.toggle('on', !!online);
+  $('#alLine').textContent = `${cnt('review')} waiting for you · ${cnt('queued')} being made · ${cnt('approved')} approved${AL?.at ? ' · synced ' + ago(AL.at) + (ago(AL.at) === 'now' ? '' : ' ago') : ''}`;
+  $('#alFilter').innerHTML = ['review', 'queued', 'approved', 'scrapped'].map((k) => `<button data-alf="${k}" class="${alF === k ? 'on' : ''}">${AL_ST[k]} (${cnt(k)})</button>`).join('');
+  const rows = it.filter((x) => (AL_ST[x.status] || x.status) === AL_ST[alF]).sort((a, b) => b.at - a.at);
+  $('#alX').innerHTML = rows.map((x) => `<div class="al" data-al="${esc(x.pid)}">
+    <h3>${esc(x.title)}</h3><div class="dim" style="font-size:12px">${x.live ? 'Live on Etsy' : 'Not on Etsy yet (goes live when you approve)'} · round ${x.round}${x.note ? ' · your note: ' + esc(x.note) : ''}${x.todo ? ' · <b>' + esc(x.todo) + '</b>' : ''}${x.error ? ' · error: ' + esc(x.error) : ''}</div>
+    ${x.status === 'queued' || x.status === 'making' ? '<div class="dim" style="margin-top:8px;font-size:13px">Making new listing photos. It comes back here for you to check.</div>' : `<div class="alcols">
+      <div class="alcol"><div class="l">Printify (what ships)</div><div class="alimgs">${(x.printify || []).map((p, i) => `<img class="${i === 0 ? 'big' : ''}" data-ghimg="${esc(p)}" alt="">`).join('')}</div></div>
+      <div class="alcol"><div class="l">AI listing photos</div><div class="alimgs">${(x.ai || []).map((p, i) => `<img class="${i === 0 ? 'big' : ''}" data-ghimg="${esc(p)}" alt="">`).join('') || '<div class="dim">No photo passed the checker. Tap Fix to remake.</div>'}</div>
+        ${(x.checks || []).length ? `<div class="alchk">Checker: ${x.checks.map((c) => esc(c.split(':')[0])).join(' · ')}</div>` : ''}</div></div>`}
+    ${x.status === 'review' ? `<input class="alnote" placeholder="Note for the fix (optional), e.g. shirt should be white, text is wrong">
+    <div class="alact"><button class="btn ok" data-alact="approve">Looks the same · Approve</button><button class="btn fx" data-alact="fix">Doesn't match · Fix</button><button class="btn sc" data-alact="scrap">Scrap idea</button></div>` : ''}
+  </div>`).join('') || `<div class="tr dim">Nothing here.</div>`;
+  $$('#alX img[data-ghimg]').forEach(async (im) => { im.src = await ghImg(im.dataset.ghimg); });
+}
+$('#alFilter').onclick = (e) => { const b = e.target.closest('[data-alf]'); if (!b) return; alF = b.dataset.alf; renderLine(); };
+$('#alX').onclick = async (e) => {
+  const im = e.target.closest('img[data-ghimg]'); if (im) { const z = document.createElement('div'); z.className = 'alzoom'; z.innerHTML = `<img src="${im.src}">`; z.onclick = () => z.remove(); document.body.appendChild(z); return; }
+  const b = e.target.closest('[data-alact]'); if (!b) return; const card = b.closest('[data-al]'); const pid = card.dataset.al, act = b.dataset.alact;
+  if (act === 'scrap' && !confirm('Scrap this product? It gets deleted from Printify.')) return;
+  const note = card.querySelector('.alnote')?.value.trim() || '';
+  card.querySelectorAll('button').forEach((x) => (x.disabled = true));
+  try { await sendOrder({ type: 'assembly', pid, act, text: note });
+    const x = AL.items[pid]; x.status = act === 'approve' ? 'approved' : act === 'scrap' ? 'scrapped' : 'queued'; if (act === 'fix') { x.round++; x.note = note; } renderLine();
+    toast(act === 'approve' ? 'Approved' : act === 'fix' ? 'Sent back to be fixed. It comes back here when redone.' : 'Scrapped'); }
+  catch (err) { card.querySelectorAll('button').forEach((x) => (x.disabled = false)); toast('Failed: ' + err.message); } };
+setInterval(() => TOKEN && view === 'line' && document.visibilityState === 'visible' && loadLine(), 30000);
+
 // ---------- to-do ----------
 let TD = null;
 const TDG = ['Do soon', 'Marketing', 'Later', 'Skipped'];
@@ -1333,7 +1394,7 @@ document.addEventListener('click', (e) => { const c = e.target.closest('[data-cl
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') $$('.sheet.on').forEach((s) => closeSheet(s.id)); });
 function setView(v) {
   view = v; $$('#tabs button, #bnav button').forEach((b) => b.classList.toggle('on', b.dataset.v === v));
-  $('#v-stats').classList.toggle('hidden', v !== 'stats'); $('#v-queue').classList.toggle('hidden', v !== 'queue'); $('#v-station').classList.toggle('hidden', v !== 'station'); $('#v-money').classList.toggle('hidden', v !== 'money'); if (v === 'money' && TOKEN) getJson('station.json', null).then((s) => { ST = s; renderMoney(); }).catch(() => {}); $('#v-city').classList.toggle('hidden', v !== 'city'); $('#v-todo').classList.toggle('hidden', v !== 'todo'); if (v === 'todo' && TOKEN) loadTodo(); if (v === 'station' && TOKEN) loadStation(); if (v === 'city' && TOKEN) loadCity();
+  $('#v-stats').classList.toggle('hidden', v !== 'stats'); $('#v-queue').classList.toggle('hidden', v !== 'queue'); $('#v-station').classList.toggle('hidden', v !== 'station'); $('#v-money').classList.toggle('hidden', v !== 'money'); if (v === 'money' && TOKEN) getJson('station.json', null).then((s) => { ST = s; renderMoney(); }).catch(() => {}); $('#v-city').classList.toggle('hidden', v !== 'city'); $('#v-todo').classList.toggle('hidden', v !== 'todo'); $('#v-line').classList.toggle('hidden', v !== 'line'); if (v === 'line' && TOKEN) loadLine(); if (v === 'todo' && TOKEN) loadTodo(); if (v === 'station' && TOKEN) loadStation(); if (v === 'city' && TOKEN) loadCity();
   history.replaceState(null, '', '#' + v); if (v === 'stats' && S) drawChart(); scrollTo({ top: 0 });
 }
 $$('#tabs button, #bnav button').forEach((b) => b.onclick = () => setView(b.dataset.v));
