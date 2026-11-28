@@ -1342,7 +1342,10 @@ setInterval(() => TOKEN && view === 'money' && document.visibilityState === 'vis
 // ---------- assembly line ----------
 let AL = null, alF = 'review';
 const AL_ST = { review: 'Needs you', queued: 'Being remade', making: 'Being remade', approved: 'Approved', scrapped: 'Scrapped' };
-async function loadLine() { try { AL = await getJson('assembly.json', { items: {} }); } catch (e) { $('#alLine').textContent = 'Could not load: ' + e.message; return; } renderLine(); }
+const alPend = () => { try { return JSON.parse(localStorage.alPend || '{}'); } catch { return {}; } };
+async function loadLine() { try { AL = await getJson('assembly.json', { items: {} });
+  // keep your clicks on screen until the station has processed them (server item gets a newer timestamp)
+  const P = alPend(); for (const [pid, p] of Object.entries(P)) { const x = AL.items[pid]; if (!x || (x.at || 0) * 1000 >= p.t - 5000 || Date.now() - p.t > 30 * 60000) { delete P[pid]; continue; } x.status = p.status; } localStorage.alPend = JSON.stringify(P); } catch (e) { $('#alLine').textContent = 'Could not load: ' + e.message; return; } renderLine(); }
 function renderLine() {
   const it = Object.values(AL?.items || {}); const online = ST && Date.now() - ST.at < 12 * 60000;
   const cnt = (k) => it.filter((x) => (AL_ST[x.status] || x.status) === AL_ST[k]).length;
@@ -1369,7 +1372,7 @@ $('#alX').onclick = async (e) => {
   const note = card.querySelector('.alnote')?.value.trim() || '';
   card.querySelectorAll('button').forEach((x) => (x.disabled = true));
   try { await sendOrder({ type: 'assembly', pid, act, text: note });
-    const x = AL.items[pid]; x.status = act === 'approve' ? 'approved' : act === 'scrap' ? 'scrapped' : 'queued'; if (act === 'fix') { x.round++; x.note = note; } renderLine();
+    const x = AL.items[pid]; x.status = act === 'approve' ? 'approved' : act === 'scrap' ? 'scrapped' : 'queued'; { const P = alPend(); P[pid] = { status: x.status, t: Date.now() }; localStorage.alPend = JSON.stringify(P); } if (act === 'fix') { x.round++; x.note = note; } renderLine();
     toast(act === 'approve' ? 'Approved' : act === 'fix' ? 'Sent back to be fixed. It comes back here when redone.' : 'Scrapped'); }
   catch (err) { card.querySelectorAll('button').forEach((x) => (x.disabled = false)); toast('Failed: ' + err.message); } };
 setInterval(() => TOKEN && view === 'line' && document.visibilityState === 'visible' && loadLine(), 30000);
